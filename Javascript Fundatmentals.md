@@ -1496,5 +1496,287 @@ No. It is not inherently bad, but it can produce surprising results due to coerc
 
 
 
+# 5. `null` vs `undefined`
+
+These two values look similar, but their meaning is different.
+
+## What is `undefined`?
+
+`undefined` generally means a value has not been assigned or is unavailable.
+
+```javascript
+let name;
+
+console.log(name); // undefined
+```
+
+Here, we declared the variable but did not assign a value.
+
+### Other Examples of `undefined`
+
+#### 1. A variable without an assigned value
+
+```javascript
+let age;
+
+console.log(age); // undefined
+```
+
+The variable is declared, but no value is assigned to it.
+
+#### 2. A function without a return statement
+
+```javascript
+function greet() {
+    console.log("Hello");
+}
+
+const result = greet();
+
+console.log(result); // undefined
+```
+
+The function executes, but it does not explicitly return a value.
+
+In JavaScript, a function that doesn't return a value explicitly returns `undefined`.
+
+#### 3. Missing object property
+
+```javascript
+const user = {
+    name: "Vipul"
+};
+
+console.log(user.age); // undefined
+```
+
+The property `age` doesn't exist on the object.
+
+When we access a missing object property, JavaScript returns `undefined`.
+
+#### 4. Missing function argument
+
+```javascript
+function greet(name) {
+    console.log(name);
+}
+
+greet(); // undefined
+```
+
+The parameter `name` receives `undefined` because no argument was provided.
+
+---
+
+## A. What is `null`?
+
+`null` represents an intentionally empty or absent value.
+
+```javascript
+let user = null;
+```
+
+Here, we explicitly assign `null` to indicate that the variable currently has no user object.
+
+### Example
+
+```javascript
+let selectedUser = null;
+
+// Later:
+selectedUser = {
+    name: "Vipul"
+};
+
+console.log(selectedUser); // { name: "Vipul" }
+```
+
+Initially, there is no selected user.
+
+Later, a user is assigned.
+
+### Another Example
+
+```javascript
+const user = {
+    name: "Vipul",
+    profile: null
+};
+```
+
+Here, the `profile` property exists, but its value is intentionally set to `null`.
+
+This can indicate that the profile information is currently absent.
+
+---
+
+## B. Difference Between `null` and `undefined`
+
+| Feature | `undefined` | `null` |
+|---|---|---|
+| Meaning | Value has not been assigned or is unavailable | Intentional absence of a value |
+| Assignment | Often assigned automatically by JavaScript | Usually assigned intentionally |
+| `typeof` result | `"undefined"` | `"object"` |
+| Missing object property | Can result in `undefined` | Not automatically returned for missing properties |
+| Typical usage | Indicates an uninitialized or unavailable value | Indicates an intentionally empty value |
+
+---
+
+## C. Interview Example
+
+```javascript
+let a;
+let b = null;
+
+console.log(a); // undefined
+console.log(b); // null
+```
+
+### What is the difference?
+
+- `a`: I haven't assigned a value.
+- `b`: I intentionally assigned an empty value.
+
+The difference is primarily the intention behind the value.
+
+---
+
+## D. Important: `null` vs `undefined` with Equality
+
+```javascript
+console.log(null == undefined);  // true
+console.log(null === undefined); // false
+```
+
+### Why?
+
+With loose equality (`==`), JavaScript considers `null` and `undefined` equal to each other.
+
+With strict equality (`===`), they are not equal because they are different types.
+
+```javascript
+typeof null;      // "object"
+typeof undefined; // "undefined"
+```
+
+---
+
+## E. Common Interview Traps
+
+```javascript
+console.log(null == undefined);   // true
+console.log(null === undefined);  // false
+
+console.log(null == 0);          // false
+console.log(null === 0);         // false
+
+console.log(undefined == 0);      // false
+console.log(undefined === 0);     // false
+
+console.log(null + 1);            // 1
+console.log(undefined + 1);        // NaN
+```
+
+### Why does `null == 0` return `false`?
+
+Although `null` converts to `0` in numeric operations, loose equality comparison between `null` and other values does not follow the same conversion rules.
+
+`null` is loosely equal to `undefined`, but it is not loosely equal to `0`, `false`, or an empty string.
+
+```javascript
+console.log(null == undefined); // true
+console.log(null == 0);        // false
+console.log(null == false);    // false
+console.log(null == "");        // false
+```
+
+This is an important JavaScript interview concept.
+
+---
+
+## F. Quick Revision
+
+- `undefined` generally indicates that a value hasn't been assigned or is unavailable.
+- `null` represents an intentional absence of a value.
+- JavaScript automatically produces `undefined` in many situations.
+- `null` is usually assigned intentionally by the developer.
+- A declared variable without an assigned value contains `undefined`.
+- A missing object property returns `undefined`.
+- A function without an explicit return value returns `undefined`.
+- A missing function argument results in `undefined` for that parameter.
+- `typeof undefined` returns `"undefined"`.
+- `typeof null` returns `"object"` due to a historical JavaScript quirk.
+- `null == undefined` returns `true`.
+- `null === undefined` returns `false`.
+- `null` is not loosely equal to `0`, `false`, or `""`.
+
+---
+
+## Interview Questions
+
+### 1. What is the difference between `null` and `undefined`?
+
+`undefined` generally indicates that a value hasn't been assigned or is unavailable. `null` represents an intentional absence of a value.
+
+### 2. When does JavaScript return `undefined`?
+
+JavaScript can return `undefined` in several situations:
+
+- A variable is declared but not initialized.
+- An object property does not exist.
+- A function doesn't explicitly return a value.
+- A function parameter is not provided.
+
+### 3. Why does `typeof null` return `"object"`?
+
+This is a historical JavaScript bug/quirk that has been preserved for backward compatibility. `null` is actually a primitive value, not an object.
+
+### 4. Is `null == undefined` true?
+
+Yes.
+
+```javascript
+null == undefined; // true
+```
+
+The loose equality algorithm specifically treats these two values as equal.
+
+### 5. Is `null === undefined` true?
+
+No.
+
+```javascript
+null === undefined; // false
+```
+
+Strict equality considers their types, which are different.
+
+### 6. Is `null` equal to `0`?
+
+No.
+
+```javascript
+null == 0; // false
+```
+
+Although `null` converts to `0` in numeric operations, loose equality does not make `null` equal to `0`.
+
+### 7. What is the difference between `null + 1` and `undefined + 1`?
+
+```javascript
+null + 1;      // 1
+undefined + 1;  // NaN
+```
+
+In numeric operations:
+
+- `null` converts to `0`.
+- `undefined` converts to `NaN`.
+
+Therefore, the results are different.
+
+
+
+
 
 
