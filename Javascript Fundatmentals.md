@@ -646,3 +646,463 @@ Functions are callable objects, but `typeof` specifically identifies them using 
 
 
 
+# 3. Type Coercion
+
+Type coercion is one of the most important JavaScript fundamentals for interviews.
+
+## What is Type Coercion?
+
+Type coercion means JavaScript converts a value from one data type to another data type when performing certain operations.
+
+For example:
+
+```javascript
+console.log("5" + 2); // "52"
+```
+
+Here, `"5"` is a string and `2` is a number.
+
+JavaScript converts `2` into a string and combines both values.
+
+The result is:
+
+```text
+"52" (string)
+```
+
+JavaScript performs two kinds of conversions:
+
+- **Implicit coercion** — JavaScript automatically converts the type.
+- **Explicit coercion** — We manually convert the type.
+
+---
+
+## A. Implicit Coercion
+
+Implicit coercion happens when JavaScript automatically converts types while evaluating expressions.
+
+### Example 1: String + Number
+
+```javascript
+console.log("10" + 5); // "105"
+```
+
+### Why?
+
+When `+` is used and one operand is a string, JavaScript often converts the other operand to a string and performs concatenation.
+
+```javascript
+"10" + 5
+```
+
+Conceptually:
+
+```javascript
+"10" + "5"
+```
+
+Result:
+
+```javascript
+"105"
+```
+
+### Example 2: String - Number
+
+```javascript
+console.log("10" - 5); // 5
+```
+
+### Why?
+
+The `-` operator does not perform string concatenation.
+
+JavaScript converts `"10"` into a number.
+
+```javascript
+10 - 5
+```
+
+Result:
+
+```javascript
+5
+```
+
+### Example 3: String * Number
+
+```javascript
+console.log("10" * 2); // 20
+```
+
+JavaScript converts the string into a number before performing multiplication.
+
+Conceptually:
+
+```javascript
+10 * 2
+```
+
+Result:
+
+```javascript
+20
+```
+
+### Example 4: String / Number
+
+```javascript
+console.log("20" / 2); // 10
+```
+
+Again, `"20"` is converted to a number.
+
+Conceptually:
+
+```javascript
+20 / 2
+```
+
+Result:
+
+```javascript
+10
+```
+
+### Example 5: Boolean + Number
+
+```javascript
+console.log(true + 1);  // 2
+console.log(false + 1); // 1
+```
+
+When converted to a number:
+
+- `true` becomes `1`.
+- `false` becomes `0`.
+
+Conceptually:
+
+```javascript
+1 + 1; // 2
+0 + 1; // 1
+```
+
+---
+
+## B. Why Does `+` Behave Differently?
+
+The `+` operator is special because it can perform two operations:
+
+1. Numeric addition
+2. String concatenation
+
+```javascript
+10 + 20;    // 30
+"10" + 20;  // "1020"
+```
+
+When the operands result in string concatenation, JavaScript combines their string representations.
+
+Other arithmetic operators such as `-`, `*`, and `/` generally perform numeric conversion.
+
+### Comparison of Coercion Behaviour
+
+| Expression | Result | Reason |
+|---|---|---|
+| `"5" + 2 | `"52"` | String concatenation |
+| `"5" - 2 | `3` | Numeric conversion |
+| `"5" * 2 | `10` | Numeric conversion |
+| `"5" / 2 | `2.5` | Numeric conversion |
+| `true + 1` | `2` | Boolean converted to number |
+| `false + 1` | `1` | Boolean converted to number |
+
+---
+
+## C. Explicit Coercion
+
+Explicit coercion means we intentionally convert a value from one data type to another.
+
+### 1. Convert to String
+
+We can use the `String()` function to convert a value into a string.
+
+```javascript
+let value = 100;
+
+let result = String(value);
+
+console.log(result);       // "100"
+console.log(typeof result); // "string"
+```
+
+### 2. Convert to Number
+
+We can use the `Number()` function to convert a value into a number.
+
+```javascript
+let value = "100";
+
+let result = Number(value);
+
+console.log(result);       // 100
+console.log(typeof result); // "number"
+```
+
+### Additional Number Conversion Examples
+
+```javascript
+console.log(Number("100"));       // 100
+console.log(Number("10.5"));      // 10.5
+console.log(Number("Hello"));     // NaN
+console.log(Number(""));          // 0
+console.log(Number(null));        // 0
+console.log(Number(undefined));   // NaN
+```
+
+### 3. Convert to Boolean
+
+We can use `Boolean()` to convert a value into a Boolean.
+
+```javascript
+console.log(Boolean(1));        // true
+console.log(Boolean(0));        // false
+console.log(Boolean("Hello"));   // true
+console.log(Boolean(""));        // false
+```
+
+### 4. `parseInt()`
+
+`parseInt()` parses an integer from the beginning of a string, stopping when it encounters a character that cannot be part of the number.
+
+```javascript
+console.log(parseInt("100px")); // 100
+console.log(parseInt("25.50")); // 25
+console.log(parseInt("Hello")); // NaN
+```
+
+### 5. `parseFloat()`
+
+`parseFloat()` parses a floating-point number from the beginning of a string.
+
+```javascript
+console.log(parseFloat("10.50px")); // 10.5
+console.log(parseFloat("25.75"));   // 25.75
+console.log(parseFloat("Hello"));   // NaN
+```
+
+### Difference Between `Number()`, `parseInt()` and `parseFloat()`
+
+| Function | Example | Result |
+|---|---|---|
+| `Number()` | `Number("100px")` | `NaN` |
+| `parseInt()` | `parseInt("100px")` | `100` |
+| `parseFloat()` | `parseFloat("10.50px")` | `10.5` |
+
+---
+
+## D. Common Coercion Interview Traps
+
+```javascript
+console.log("5" + 1);       // "51"
+console.log("5" - 1);        // 4
+console.log("5" * 2);        // 10
+console.log("5" / 2);        // 2.5
+console.log(5 + true);        // 6
+console.log(5 + false);       // 5
+console.log(null + 1);        // 1
+console.log(undefined + 1);   // NaN
+```
+
+### Why does `null + 1` result in `1`?
+
+In numeric operations, `null` converts to `0`.
+
+```javascript
+Number(null); // 0
+```
+
+Therefore:
+
+```javascript
+null + 1
+```
+
+Conceptually becomes:
+
+```javascript
+0 + 1
+```
+
+Result:
+
+```javascript
+1
+```
+
+### Why does `undefined + 1` result in `NaN`?
+
+```javascript
+Number(undefined); // NaN
+```
+
+Therefore:
+
+```javascript
+undefined + 1
+```
+
+JavaScript attempts to perform a numeric operation with `NaN`.
+
+Result:
+
+```javascript
+NaN
+```
+
+---
+
+## E. Common Type Coercion Conversion Rules
+
+| Value | Numeric Conversion (`Number()`) |
+|---|---|
+| `true` | `1` |
+| `false` | `0` |
+| `null` | `0` |
+| `undefined` | `NaN` |
+| `""` | `0` |
+| `"10"` | `10` |
+| `"10.5"` | `10.5` |
+| `"Hello"` | `NaN` |
+
+### Boolean Conversion
+
+| Value | Boolean Conversion |
+|---|---|
+| `1` | `true` |
+| `0` | `false` |
+| `"Hello"` | `true` |
+| `""` | `false` |
+| `null` | `false` |
+| `undefined` | `false` |
+| `[]` | `true` |
+| `{}` | `true` |
+
+---
+
+## F. Important Interview Concept: `NaN`
+
+`NaN` stands for **Not-a-Number**.
+
+It represents an invalid or unrepresentable numeric result.
+
+```javascript
+console.log(Number("Hello")); // NaN
+console.log(0 / 0);          // NaN
+```
+
+Interestingly:
+
+```javascript
+console.log(typeof NaN); // "number"
+```
+
+Although it means Not-a-Number, `NaN` belongs to the JavaScript `Number` type.
+
+To check whether a value is `NaN`, use:
+
+```javascript
+console.log(Number.isNaN(NaN));       // true
+console.log(Number.isNaN("Hello"));   // false
+console.log(Number.isNaN(10));        // false
+```
+
+---
+
+## Quick Revision
+
+- Type coercion means converting one data type into another.
+- Implicit coercion happens automatically.
+- Explicit coercion happens when we manually convert values.
+- The `+` operator can perform numeric addition or string concatenation.
+- When `+` combines strings, it generally converts the other operand to a string.
+- Operators like `-`, `*` and `/` generally perform numeric conversion.
+- `true` converts to `1` in numeric operations.
+- `false` converts to `0` in numeric operations.
+- `null` converts to `0` in numeric operations.
+- `undefined` converts to `NaN` in numeric operations.
+- `Number()` converts a value into a number.
+- `String()` converts a value into a string.
+- `Boolean()` converts a value into a Boolean.
+- `parseInt()` parses an integer from the beginning of a string.
+- `parseFloat()` parses a floating-point number from the beginning of a string.
+- `NaN` belongs to the `Number` type.
+
+---
+
+## Interview Questions
+
+### 1. What is Type Coercion in JavaScript?
+
+Type coercion is the process of converting a value from one data type to another. JavaScript can perform this conversion automatically or we can perform it manually.
+
+### 2. What is the difference between implicit and explicit coercion?
+
+- Implicit coercion is performed automatically by JavaScript.
+- Explicit coercion is performed intentionally by the developer using functions such as `Number()`, `String()` or `Boolean()`.
+
+### 3. Why does `"5" + 2` return `"52"`?
+
+Because the `+` operator performs string concatenation when string conversion is applicable. The number `2` is converted to a string, and both strings are concatenated.
+
+### 4. Why does `"5" - 2` return `3`?
+
+Because the `-` operator performs numeric conversion. The string `"5"` is converted into the number `5`.
+
+### 5. What is the difference between `Number()` and `parseInt()`?
+
+`Number()` attempts to convert the entire value into a number, while `parseInt()` parses an integer from the beginning of a string and stops when it encounters an invalid character.
+
+```javascript
+Number("100px");   // NaN
+parseInt("100px"); // 100
+```
+
+### 6. What is `NaN`?
+
+`NaN` stands for Not-a-Number. It represents an invalid numeric result, but its type is still `number`.
+
+```javascript
+typeof NaN; // "number"
+```
+
+### 7. Why does `null + 1` return `1`?
+
+Because `null` converts to `0` during numeric conversion.
+
+### 8. Why does `undefined + 1` return `NaN`?
+
+Because `undefined` converts to `NaN` when converted to a number, and arithmetic involving `NaN` results in `NaN`.
+
+### 9. What happens when you add a Boolean and a number?
+
+JavaScript converts the Boolean into a number.
+
+```javascript
+true + 1;  // 2
+false + 1; // 1
+```
+
+### 10. What is the difference between `parseInt()` and `parseFloat()`?
+
+- `parseInt()` parses an integer.
+- `parseFloat()` parses a floating-point number.
+
+```javascript
+parseInt("10.50");   // 10
+parseFloat("10.50"); // 10.5
+```
+
+
+
+
