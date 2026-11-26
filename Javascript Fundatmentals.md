@@ -3111,5 +3111,327 @@ increment(); // 3
 
 
 
+# Lexical Scope in JavaScript
+
+## 1. What is Lexical Scope?
+
+**Lexical scope means JavaScript determines which variables a function can access based on where the function is written (defined), not where the function is called.**
+
+In simple words, the location where you write a function determines which variables it can access.
+
+---
+
+## 2. Simple Example of Lexical Scope
+
+```javascript
+const name = "Vipul";
+
+function greet() {
+  console.log(name);
+}
+
+greet();
+```
+
+### Output
+
+```text
+Vipul
+```
+
+### Explanation
+
+1. We declared a variable called `name` outside the function.
+2. We created a function called `greet()`.
+3. The `greet()` function can access the `name` variable because it is available in its outer scope.
+4. When we call `greet()`, JavaScript prints `Vipul`.
+
+---
+
+## 3. Lexical Scope with Nested Functions
+
+```javascript
+function outer() {
+  let name = "Vipul";
+
+  function inner() {
+    console.log(name);
+  }
+
+  inner();
+}
+
+outer();
+```
+
+### Output
+
+```text
+Vipul
+```
+
+### Explanation
+
+1. We created an `outer()` function.
+2. Inside `outer()`, we declared a variable `name`.
+3. We created an `inner()` function inside `outer()`.
+4. The `inner()` function tries to access `name`.
+5. JavaScript searches inside the `inner()` function first.
+6. It does not find `name`.
+7. JavaScript then searches in the outer scope.
+8. It finds `name = "Vipul"` and prints it.
+
+**An inner function can access variables from its outer function.**
+
+---
+
+## 4. Scope Access Direction
+
+JavaScript allows inner scopes to access variables from outer scopes.
+
+However, outer scopes cannot directly access variables from inner scopes.
+
+### Example
+
+```javascript
+function outer() {
+  function inner() {
+    let message = "Hello";
+
+    console.log(message);
+  }
+
+  inner();
+
+  console.log(message);
+}
+
+outer();
+```
+
+### Output
+
+```text
+Hello
+ReferenceError: message is not defined
+```
+
+### Why?
+
+The `message` variable is declared inside the `inner()` function.
+
+Therefore, it belongs to the scope of `inner()` and cannot be directly accessed by `outer()`.
+
+### Remember
+
+- Inner scope can access outer scope variables.
+- Outer scope cannot access inner scope variables.
+
+---
+
+## 5. Lexical Scope vs Dynamic Scope
+
+JavaScript uses lexical scope, not dynamic scope.
+
+### Example
+
+```javascript
+let name = "Global";
+
+function outer() {
+  let name = "Outer";
+
+  function inner() {
+    console.log(name);
+  }
+
+  return inner;
+}
+
+const result = outer();
+
+function anotherFunction() {
+  let name = "Another Function";
+
+  result();
+}
+
+anotherFunction();
+```
+
+### Output
+
+```text
+Outer
+```
+
+### Why is the output `Outer`?
+
+1. The `inner()` function is written inside `outer()`.
+2. Therefore, `inner()` is lexically connected to the scope of `outer()`.
+3. When `inner()` searches for `name`, it finds `name` in `outer()`.
+4. It prints `Outer`.
+
+Even though `result()` is called from inside `anotherFunction()`, it does not use the scope of `anotherFunction()` to resolve the variable.
+
+**JavaScript determines variable access based on where the function is defined, not where it is called.**
+
+---
+
+## 6. What is the Scope Chain?
+
+When JavaScript needs a variable, it searches for that variable in the following order:
+
+1. Current scope.
+2. Parent scope.
+3. Further outer scopes.
+4. Global scope.
+
+If the variable is not found anywhere, JavaScript throws a `ReferenceError` (when trying to access an undeclared identifier).
+
+### Example
+
+```javascript
+let globalVariable = "Global";
+
+function outer() {
+  let outerVariable = "Outer";
+
+  function inner() {
+    let innerVariable = "Inner";
+
+    console.log(innerVariable);
+    console.log(outerVariable);
+    console.log(globalVariable);
+  }
+
+  inner();
+}
+
+outer();
+```
+
+### Output
+
+```text
+Inner
+Outer
+Global
+```
+
+### How does JavaScript search?
+
+When `inner()` executes:
+
+- `innerVariable` is found in the inner scope.
+- `outerVariable` is found in the outer scope.
+- `globalVariable` is found in the global scope.
+
+This lookup mechanism is called the **Scope Chain**.
+
+---
+
+## 7. Lexical Scope and Closures
+
+Lexical scope is the foundation of closures.
+
+### Example
+
+```javascript
+function outer() {
+  let name = "Vipul";
+
+  return function inner() {
+    console.log(name);
+  };
+}
+
+const result = outer();
+
+result();
+```
+
+### Output
+
+```text
+Vipul
+```
+
+### Explanation
+
+1. `outer()` executes.
+2. It creates the `name` variable.
+3. It returns the `inner()` function.
+4. The outer function finishes executing.
+5. We call the returned function.
+6. The inner function still has access to `name`.
+
+This is an example of a closure.
+
+### Difference
+
+| Lexical Scope | Closure |
+|---|---|
+| Determines variable access based on where code is written. | A function retains access to variables from its surrounding lexical environment. |
+| Defines how variable lookup works. | Allows access to surrounding variables even after the outer function finishes. |
+| It is the foundation of closures. | It uses lexical scope to retain access to variables. |
+
+---
+
+## 8. Interview Questions
+
+### Q1. What is lexical scope?
+
+Lexical scope means that variable accessibility is determined by where a function or block is defined in the source code, rather than where it is called.
+
+### Q2. Does JavaScript use lexical scope or dynamic scope?
+
+JavaScript uses lexical scope.
+
+### Q3. Can an inner function access outer function variables?
+
+Yes. An inner function can access variables from its own scope and its outer scopes.
+
+### Q4. Can an outer function access variables from an inner function?
+
+No. Variables declared inside an inner function are not directly accessible from the outer function.
+
+### Q5. What is the scope chain?
+
+The scope chain is the mechanism JavaScript uses to search for variables. It searches in the current scope and then in its outer scopes until it finds the variable or reaches the global scope.
+
+### Q6. What is the relationship between lexical scope and closure?
+
+Lexical scope defines where a function can access variables. Closures allow a function to retain access to variables from that lexical environment even after the outer function finishes executing.
+
+---
+
+## 9. Interview Answer
+
+Lexical scope in JavaScript means the accessibility of variables is determined by where functions and blocks are defined in the source code, rather than where they are called.
+
+An inner function can access variables from its own scope and the outer scopes. JavaScript searches for variables through the scope chain.
+
+Lexical scope is also the foundation of closures in JavaScript.
+
+---
+
+## 10. Quick Revision
+
+- Lexical scope is determined by where code is written.
+- JavaScript uses lexical scope.
+- Functions access variables based on their definition location.
+- Inner functions can access outer function variables.
+- Outer functions cannot directly access inner function variables.
+- JavaScript searches for variables through the scope chain.
+- Lexical scope is the foundation of closures.
+
+### Remember This
+
+**Where a function is written determines which variables it can access, not where the function is called.**
+
+
+
+
 
 
