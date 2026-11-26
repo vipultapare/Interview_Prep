@@ -2137,5 +2137,565 @@ After understanding scope, study these concepts in order:
 These concepts are closely related and are frequently asked in JavaScript interviews.
 
 
+# JavaScript Hoisting
+
+## What is Hoisting?
+
+Hoisting is a JavaScript behavior where declarations are processed before code execution, which affects how variables and functions can be accessed before the line where they are written.
+
+In simple words, **JavaScript prepares certain declarations before executing the code.**
+
+However, hoisting does not mean JavaScript physically moves the code to the top. It is a conceptual way of understanding how JavaScript handles declarations during execution.
+
+---
+
+## 1. Hoisting with `var`
+
+Variables declared using `var` are hoisted and initialized with `undefined`.
+
+### Example
+
+```javascript
+console.log(name);
+
+var name = "Vipul";
+
+console.log(name);
+```
+
+### Output
+
+```text
+undefined
+Vipul
+```
+
+### Why does this happen?
+
+The declaration of `name` is processed before execution, but the assignment happens when JavaScript reaches that line.
+
+### Conceptual representation
+
+```javascript
+var name;
+
+console.log(name); // undefined
+
+name = "Vipul";
+
+console.log(name); // Vipul
+```
+
+### Explanation
+
+- The declaration `var name` is processed before execution.
+- Initially, the variable contains `undefined`.
+- When JavaScript reaches `name = "Vipul"`, the value is assigned.
+- The second `console.log()` prints `Vipul`.
+
+### Interview Answer
+
+Variables declared using `var` are hoisted to their function scope or global scope, depending on where they are declared. They are initialized with `undefined`, so accessing them before their assignment returns `undefined`.
+
+---
+
+## 2. Hoisting with `let`
+
+Variables declared using `let` are hoisted, but they are not initialized with a value that allows access before their declaration is executed.
+
+### Example
+
+```javascript
+console.log(a);
+
+let a = 10;
+```
+
+### Output
+
+```text
+ReferenceError: Cannot access 'a' before initialization
+```
+
+### Why does this happen?
+
+- The `let` declaration is associated with its scope before execution.
+- However, the variable cannot be accessed before its declaration is executed.
+- During this period, the variable is in the Temporal Dead Zone (TDZ).
+
+### Example
+
+```javascript
+// Temporal Dead Zone starts
+
+console.log(a); // ReferenceError
+
+let a = 10; // TDZ ends for a
+```
+
+### Interview Answer
+
+`let` variables are hoisted, but they remain uninitialized until their declaration is executed. Accessing them before that results in a ReferenceError because of the Temporal Dead Zone.
+
+---
+
+## 3. Hoisting with `const`
+
+`const` behaves similarly to `let` regarding hoisting.
+
+### Example
+
+```javascript
+console.log(a);
+
+const a = 10;
+```
+
+### Output
+
+```text
+ReferenceError: Cannot access 'a' before initialization
+```
+
+### Why does this happen?
+
+- `const` is hoisted.
+- It remains uninitialized until its declaration is executed.
+- Accessing it before initialization results in a ReferenceError.
+- A `const` declaration must also include an initial value.
+
+### Correct Example
+
+```javascript
+const a = 10;
+
+console.log(a); // 10
+```
+
+### Interview Answer
+
+`const` variables are hoisted but remain uninitialized during the Temporal Dead Zone. Accessing them before the declaration is executed results in a ReferenceError.
+
+---
+
+## 4. Hoisting with Function Declaration
+
+Function declarations can be called before they appear in the code.
+
+### Example
+
+```javascript
+greet();
+
+function greet() {
+    console.log("Hello Vipul");
+}
+```
+
+### Output
+
+```text
+Hello Vipul
+```
+
+### Why does this happen?
+
+Function declarations are available during execution before their position in the source code.
+
+Therefore, we can call a function before its declaration.
+
+### Example
+
+```javascript
+function greet() {
+    console.log("Hello Vipul");
+}
+
+greet();
+```
+
+Both examples produce the same output.
+
+### Interview Answer
+
+Function declarations are hoisted along with their definitions, which means we can call them before they appear in the code.
+
+---
+
+## 5. Hoisting with Function Expression
+
+A function expression behaves differently from a function declaration.
+
+### Example
+
+```javascript
+greet();
+
+var greet = function () {
+    console.log("Hello");
+};
+```
+
+### Output
+
+```text
+TypeError: greet is not a function
+```
+
+### Why does this happen?
+
+- `var greet` is hoisted.
+- Initially, `greet` contains `undefined`.
+- The function is assigned to `greet` only when execution reaches the assignment.
+- When `greet()` executes earlier, JavaScript tries to call `undefined` as a function.
+
+### Conceptual Representation
+
+```javascript
+var greet;
+
+greet(); // TypeError
+
+greet = function () {
+    console.log("Hello");
+};
+```
+
+### Interview Answer
+
+In a function expression, the variable declaration is hoisted, but the function assignment is not. Therefore, calling the function before the assignment results in a TypeError when using `var`.
+
+---
+
+## 6. Hoisting with Arrow Functions
+
+Arrow functions also behave like function expressions.
+
+### Example Using `const`
+
+```javascript
+hello();
+
+const hello = () => {
+    console.log("Hello");
+};
+```
+
+### Output
+
+```text
+ReferenceError: Cannot access 'hello' before initialization
+```
+
+### Why does this happen?
+
+- The `const` declaration is hoisted.
+- It remains uninitialized until the declaration is executed.
+- The function assignment has not happened yet.
+- Accessing `hello` before initialization results in a ReferenceError.
+
+### Example Using `var`
+
+```javascript
+hello();
+
+var hello = () => {
+    console.log("Hello");
+};
+```
+
+### Output
+
+```text
+TypeError: hello is not a function
+```
+
+### Why?
+
+Because `hello` is initially `undefined`, and JavaScript cannot call `undefined` as a function.
+
+---
+
+## 7. Function Declaration vs Function Expression
+
+| Feature | Function Declaration | Function Expression |
+|---|---|---|
+| Example | `function greet() {}` | `const greet = function() {}` |
+| Hoisting | Function definition is available | Variable declaration is hoisted |
+| Can call before declaration? | Yes | No, not in the typical way |
+| Function available before execution reaches the declaration? | Yes | No |
+
+---
+
+## 8. `var` vs `let` vs `const` in Hoisting
+
+| Variable | Hoisted | Initial Value Before Declaration Executes | Access Before Declaration |
+|---|---|---|---|
+| `var` | Yes | `undefined` | Allowed |
+| `let` | Yes | Uninitialized | ReferenceError |
+| `const` | Yes | Uninitialized | ReferenceError |
+
+### Remember
+
+- `var` → Hoisted and initialized with `undefined`.
+- `let` → Hoisted but uninitialized.
+- `const` → Hoisted but uninitialized.
+- `let` and `const` → Temporal Dead Zone before initialization.
+
+---
+
+## 9. Tricky Interview Questions
+
+### Question 1
+
+```javascript
+console.log(a);
+
+var a = 5;
+
+console.log(a);
+```
+
+### Output
+
+```text
+undefined
+5
+```
+
+### Explanation
+
+The `var` declaration is hoisted, but the assignment happens later.
+
+---
+
+### Question 2
+
+```javascript
+console.log(a);
+
+let a = 5;
+```
+
+### Output
+
+```text
+ReferenceError
+```
+
+### Explanation
+
+The variable is in the Temporal Dead Zone until its declaration is executed.
+
+---
+
+### Question 3
+
+```javascript
+greet();
+
+function greet() {
+    console.log("Hello");
+}
+```
+
+### Output
+
+```text
+Hello
+```
+
+### Explanation
+
+Function declarations are hoisted along with their definitions.
+
+---
+
+### Question 4
+
+```javascript
+greet();
+
+var greet = function () {
+    console.log("Hello");
+};
+```
+
+### Output
+
+```text
+TypeError: greet is not a function
+```
+
+### Explanation
+
+The variable is hoisted, but its function assignment happens later.
+
+---
+
+### Question 5
+
+```javascript
+var a = 10;
+
+function test() {
+    console.log(a);
+
+    var a = 20;
+}
+
+test();
+```
+
+### Output
+
+```text
+undefined
+```
+
+### Explanation
+
+The local variable `a` inside the function is hoisted to the function scope.
+
+Conceptually, JavaScript behaves like this:
+
+```javascript
+var a = 10;
+
+function test() {
+    var a;
+
+    console.log(a); // undefined
+
+    a = 20;
+}
+
+test();
+```
+
+The local `a` shadows the global `a` inside the function.
+
+---
+
+### Question 6
+
+```javascript
+var a = 10;
+
+function test() {
+    console.log(a);
+}
+
+test();
+```
+
+### Output
+
+```text
+10
+```
+
+### Explanation
+
+There is no local variable `a` inside `test()`, so JavaScript looks in the outer scope and finds the global variable.
+
+---
+
+## 10. What is Temporal Dead Zone (TDZ)?
+
+The Temporal Dead Zone is the period between entering a scope and the point where a `let` or `const` declaration is executed.
+
+During this period, the variable exists in its scope but cannot be accessed.
+
+### Example
+
+```javascript
+{
+    // TDZ starts
+
+    console.log(a); // ReferenceError
+
+    let a = 10; // TDZ ends
+
+    console.log(a); // 10
+}
+```
+
+### Explanation
+
+- The scope begins.
+- The variable `a` is associated with the block but is uninitialized.
+- Accessing `a` before its declaration results in a ReferenceError.
+- Once the declaration executes, `a` can be accessed.
+
+---
+
+## 11. Real-Life Analogy
+
+Imagine a company preparing for a meeting.
+
+### `var`
+
+The employee's name is already on the list, but the value is initially marked as `undefined`. You can check the list, but the actual information has not been assigned yet.
+
+### `let` and `const`
+
+The employee's record exists, but it is temporarily locked. You cannot access the information until the initialization process is completed.
+
+### Function Declaration
+
+A meeting's agenda and instructions are already available, so you can refer to them before the meeting's position in the schedule.
+
+### Function Expression
+
+The instructions are created and assigned only when that particular step is reached.
+
+---
+
+## 12. How to Explain Hoisting in an Interview
+
+Hoisting is a JavaScript behavior where declarations are processed before code execution, which affects how variables and functions can be accessed before the line where they are written.
+
+For example, variables declared using `var` are hoisted and initialized with `undefined`, so accessing them before their assignment returns `undefined`.
+
+However, `let` and `const` are also hoisted, but they remain uninitialized until their declaration is executed. Accessing them before that results in a ReferenceError due to the Temporal Dead Zone.
+
+Function declarations are hoisted along with their definitions, so we can call them before they appear in our code.
+
+But function expressions and arrow functions behave differently because only the variable declaration is hoisted, not the function assignment.
+
+---
+
+## 13. Quick Revision Notes
+
+| Concept | Remember |
+|---|---|
+| Hoisting | Declarations are processed before execution |
+| `var` | Hoisted and initialized with `undefined` |
+| `let` | Hoisted but uninitialized |
+| `const` | Hoisted but uninitialized |
+| Function declaration | Function definition is available before its code position |
+| Function expression | Function assignment happens during execution |
+| Arrow function | Behaves like a function expression for hoisting |
+| TDZ | Period before `let`/`const` initialization |
+| `ReferenceError` | Accessing uninitialized `let`/`const` |
+| `TypeError` | Attempting to call a non-function value such as `undefined` |
+
+---
+
+## 14. Topics to Study Next
+
+After understanding Hoisting, study these topics:
+
+1. Temporal Dead Zone (TDZ)
+2. Lexical Scope
+3. Scope Chain
+4. Variable Shadowing
+5. Closures
+6. Execution Context
+7. Call Stack
+
+
+
 
 
