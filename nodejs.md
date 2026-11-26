@@ -790,3 +790,408 @@ libuv provides the Event Loop implementation and asynchronous I/O coordination u
 
 > The Event Loop is a mechanism that allows Node.js to coordinate asynchronous operations and execute their callbacks without blocking the main JavaScript thread while waiting for those operations to finish.
 
+
+# Single-Threaded Architecture in Node.js
+
+## 1. What is Single-Threaded?
+
+Single-threaded means that a program uses one main thread to execute JavaScript code at a time.
+
+In Node.js, JavaScript code normally executes on a single main thread.
+
+This means Node.js executes one JavaScript operation at a time on its main thread.
+
+However, Node.js is not completely single-threaded. It uses background threads, the operating system and other mechanisms to handle certain asynchronous operations.
+
+---
+
+## 2. What is a Thread?
+
+A thread is a path of execution through which a program executes instructions.
+
+Think of a thread as a worker who performs tasks.
+
+- One thread = one worker executing instructions.
+- Multiple threads = multiple workers executing tasks simultaneously.
+
+### Example
+
+Imagine a restaurant with one chef.
+
+The chef can prepare one dish at a time. If the chef is busy preparing a dish, they cannot simultaneously prepare another dish on the same thread.
+
+This is similar to JavaScript execution on Node.js's main thread.
+
+---
+
+## 3. Why is Node.js Called Single-Threaded?
+
+Node.js is called single-threaded because JavaScript code in a typical Node.js application executes on one main JavaScript thread.
+
+For example:
+
+```javascript
+console.log("Task 1");
+
+console.log("Task 2");
+
+console.log("Task 3");
+```
+
+### Output
+
+```text
+Task 1
+Task 2
+Task 3
+```
+
+The main JavaScript thread executes these statements one after another.
+
+It doesn't execute all three statements simultaneously.
+
+---
+
+## 4. Is Node.js Completely Single-Threaded?
+
+No!
+
+Node.js is single-threaded primarily in terms of JavaScript execution on its main thread.
+
+Internally, Node.js uses:
+
+- Main JavaScript Thread
+- libuv Thread Pool
+- Operating System mechanisms
+- Worker Threads (when explicitly used)
+
+Therefore, Node.js itself has multiple threads and asynchronous mechanisms.
+
+---
+
+## 5. Node.js Thread Architecture
+
+```text
+                  Node.js Application
+                          |
+                          |
+                 Main JavaScript Thread
+                          |
+                    JavaScript Code
+                          |
+                Initiates Async Operation
+                          |
+             +------------+------------+
+             |                         |
+             |                         |
+        libuv Thread Pool          OS Mechanisms
+             |                         |
+     File System Operations        Network Operations
+     Crypto Operations             Sockets etc.
+     Certain DNS Operations
+             |                         |
+             +------------+------------+
+                          |
+                   Operation Completes
+                          |
+                Callback / Continuation
+                          |
+                 Event Loop Scheduling
+                          |
+              Main JavaScript Thread
+```
+
+---
+
+## 6. What is the Main JavaScript Thread?
+
+The main JavaScript thread is where JavaScript code executes.
+
+For example:
+
+```javascript
+console.log("Start");
+
+function calculate() {
+    console.log("Calculating...");
+}
+
+calculate();
+
+console.log("End");
+```
+
+### Output
+
+```text
+Start
+Calculating...
+End
+```
+
+All these JavaScript statements execute on the main JavaScript thread.
+
+---
+
+## 7. What is the Thread Pool?
+
+Node.js uses the libuv Thread Pool to handle certain operations in the background.
+
+The Thread Pool contains background worker threads.
+
+These workers can handle operations such as:
+
+- Certain file system operations
+- Some cryptographic operations
+- Certain DNS operations
+- Some other operations supported by libuv
+
+This allows the main JavaScript thread to continue executing JavaScript instead of waiting for these operations to finish.
+
+---
+
+## 8. Example of Asynchronous File Reading
+
+```javascript
+const fs = require("fs");
+
+console.log("1. Start");
+
+fs.readFile("data.txt", "utf8", (err, data) => {
+    if (err) {
+        console.log(err);
+        return;
+    }
+
+    console.log("3. File reading completed");
+});
+
+console.log("2. End");
+```
+
+### Output
+
+```text
+1. Start
+2. End
+3. File reading completed
+```
+
+### How does this work?
+
+**Step 1:**
+
+```javascript
+console.log("1. Start");
+```
+
+The main JavaScript thread executes this statement.
+
+**Step 2:**
+
+```javascript
+fs.readFile("data.txt", "utf8", callback);
+```
+
+Node.js initiates the asynchronous file-reading operation.
+
+The main JavaScript thread does not wait for the file reading to finish.
+
+**Step 3:**
+
+```javascript
+console.log("2. End");
+```
+
+The main JavaScript thread continues executing the next statement.
+
+**Step 4:**
+
+When the file reading operation completes, Node.js schedules the callback.
+
+**Step 5:**
+
+The Event Loop coordinates when the callback can execute.
+
+The callback executes on the main JavaScript thread.
+
+---
+
+## 9. Why Doesn't Node.js Block?
+
+Node.js doesn't block the main JavaScript thread while waiting for supported asynchronous operations to complete.
+
+For example, when Node.js initiates a file-reading operation:
+
+```javascript
+fs.readFile("data.txt", callback);
+```
+
+The main thread doesn't sit idle waiting for the file.
+
+Instead:
+
+1. Node.js initiates the file operation.
+2. The operation is handled using the appropriate underlying mechanism.
+3. JavaScript continues executing other code.
+4. When the operation completes, its callback is scheduled.
+5. The callback eventually executes on the main JavaScript thread.
+
+This is one of the reasons Node.js is efficient for I/O-heavy applications.
+
+---
+
+## 10. What Happens If JavaScript Performs a CPU-Heavy Task?
+
+Node.js can still be blocked if JavaScript performs a CPU-intensive operation on the main thread.
+
+### Example
+
+```javascript
+console.log("Start");
+
+for (let i = 0; i < 10000000000; i++) {
+    // Heavy computation
+}
+
+console.log("End");
+```
+
+The main JavaScript thread is busy executing the loop.
+
+During this time, it cannot execute other JavaScript callbacks.
+
+This can delay:
+
+- HTTP requests
+- Timers
+- Database callbacks
+- Other asynchronous callbacks
+
+Therefore, CPU-intensive tasks can affect Node.js performance.
+
+---
+
+## 11. What Are Worker Threads?
+
+Worker Threads allow JavaScript code to execute in separate threads.
+
+They can be used for CPU-intensive tasks.
+
+Unlike the normal main JavaScript thread, a Worker Thread can execute JavaScript independently on a separate thread.
+
+### Main Thread
+
+```text
+Handles normal application JavaScript
+```
+
+### Worker Thread
+
+```text
+Handles CPU-intensive JavaScript work
+```
+
+Worker Threads can help prevent CPU-heavy tasks from blocking the main thread.
+
+---
+
+## 12. Main Thread vs Thread Pool vs Worker Threads
+
+| Component | Purpose |
+|---|---|
+| Main JavaScript Thread | Executes the main JavaScript code and callbacks |
+| libuv Thread Pool | Handles certain operations in the background |
+| OS Mechanisms | Handle many asynchronous network and other operations |
+| Worker Threads | Execute JavaScript on separate threads |
+
+---
+
+## 13. Why Does Node.js Use a Single JavaScript Thread?
+
+Node.js uses this architecture to make handling I/O-heavy workloads efficient.
+
+Instead of creating a separate JavaScript thread for every request, Node.js can:
+
+1. Receive a request.
+2. Initiate an asynchronous operation.
+3. Continue handling other work.
+4. Process the completed operation when its callback or continuation is scheduled.
+
+This approach is useful for applications that handle many requests involving:
+
+- APIs
+- Databases
+- File systems
+- Network communication
+
+---
+
+## 14. Real-World Example
+
+Imagine a receptionist in an office.
+
+The receptionist has one desk.
+
+A customer asks for a document.
+
+Instead of waiting at the desk until the document is ready:
+
+1. The receptionist sends the request to another department.
+2. The receptionist continues helping other customers.
+3. The other department prepares the document.
+4. When the document is ready, the receptionist receives it.
+5. The receptionist gives the document to the original customer.
+
+### Mapping
+
+| Office | Node.js |
+|---|---|
+| Receptionist | Main JavaScript Thread |
+| Other Department | Background operation / OS |
+| Request | Asynchronous operation |
+| Document Ready | Operation completed |
+| Receptionist handles document | Callback executes |
+
+This is the basic idea behind Node.js asynchronous architecture.
+
+---
+
+## 15. Important Interview Question
+
+### Q: Node.js is single-threaded, but it uses a Thread Pool. Why?
+
+**Answer:**
+
+Node.js is called single-threaded because JavaScript code in a typical Node.js application executes on one main JavaScript thread.
+
+However, Node.js is not entirely single-threaded. It uses libuv's Thread Pool for certain operations, such as many file system and cryptographic operations, and relies on operating-system mechanisms for many network operations.
+
+When an asynchronous operation is initiated, Node.js can delegate or initiate the work without blocking the main JavaScript thread. The main thread can continue executing other JavaScript code.
+
+When the operation completes, its callback or continuation is scheduled and eventually executes on the main JavaScript thread.
+
+Therefore, Node.js is single-threaded in terms of its main JavaScript execution, but its runtime uses multiple threads and other asynchronous mechanisms.
+
+---
+
+## 16. Quick Revision
+
+- A thread is a path of execution.
+- Node.js normally executes JavaScript on one main thread.
+- Node.js is not entirely single-threaded.
+- libuv provides a Thread Pool for certain operations.
+- Many network operations use OS mechanisms instead of the libuv Thread Pool.
+- Async operations help avoid blocking the main thread while waiting.
+- Callbacks and JavaScript continuations generally execute on the main JavaScript thread.
+- CPU-heavy JavaScript can block the Event Loop.
+- Worker Threads allow JavaScript to execute on separate threads.
+- Node.js is particularly useful for I/O-heavy applications.
+
+---
+
+## Remember This
+
+**Node.js is single-threaded for JavaScript execution, not single-threaded in its entire runtime architecture.**
+
+
