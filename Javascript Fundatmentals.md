@@ -1777,6 +1777,365 @@ Therefore, the results are different.
 
 
 
+# JavaScript Scope
+
+## What is Scope?
+
+Scope defines where a variable, function, or object can be accessed within JavaScript code.
+
+In simple words, **scope determines the visibility and accessibility of variables** in our code.
+
+JavaScript commonly involves three types of scope:
+
+- Global Scope
+- Function Scope
+- Block Scope
+
+---
+
+## 1. Global Scope
+
+A variable declared outside functions and blocks at the top level is in the global scope.
+
+It can generally be accessed throughout the applicable global scope.
+
+### Example
+
+```javascript
+const company = "OpenAI";
+
+function showCompany() {
+    console.log(company);
+}
+
+showCompany();
+console.log(company);
+```
+
+### Output
+
+```text
+OpenAI
+OpenAI
+```
+
+### Explanation
+
+- `company` is declared outside the function.
+- It belongs to the global scope in this script.
+- It can be accessed inside `showCompany()`.
+- It can also be accessed outside the function.
+
+### Interview Answer
+
+Global scope means a variable is declared at the top level, outside functions and blocks, making it accessible throughout the applicable scope of the program.
+
+However, we should avoid creating too many global variables because they can cause naming conflicts and unintended modifications.
+
+---
+
+## 2. Function Scope
+
+Function scope means a variable declared inside a function can only be accessed within that function.
+
+Variables declared using `var`, `let`, and `const` inside a function cannot be directly accessed outside that function.
+
+### Example
+
+```javascript
+function login() {
+    const username = "Vipul";
+
+    console.log(username);
+}
+
+login();
+
+console.log(username);
+```
+
+### Output
+
+```text
+Vipul
+ReferenceError: username is not defined
+```
+
+### Explanation
+
+- `username` is declared inside the `login()` function.
+- It can be accessed inside the function.
+- It cannot be accessed directly outside the function.
+
+### Interview Answer
+
+Function scope means variables declared inside a function are accessible only within that function and its nested scopes.
+
+---
+
+## 3. Block Scope
+
+Block scope means a variable declared inside a block `{}` using `let` or `const` can only be accessed within that block.
+
+Blocks can be created using:
+
+- `if`
+- `else`
+- `for`
+- `while`
+- `{}`
+
+### Example Using `let`
+
+```javascript
+if (true) {
+    let age = 25;
+
+    console.log(age);
+}
+
+console.log(age);
+```
+
+### Output
+
+```text
+25
+ReferenceError: age is not defined
+```
+
+### Explanation
+
+- `age` is declared inside the `if` block.
+- It is accessible inside that block.
+- It cannot be accessed outside the block.
+
+### Example Using `const`
+
+```javascript
+if (true) {
+    const city = "Bangalore";
+
+    console.log(city);
+}
+
+console.log(city);
+```
+
+### Output
+
+```text
+Bangalore
+ReferenceError: city is not defined
+```
+
+### Interview Answer
+
+Block scope means variables declared using `let` and `const` inside curly braces are accessible only within that block and its nested scopes.
+
+---
+
+## 4. `var` vs `let` vs `const` in Scope
+
+This is one of the most important scope-related interview questions.
+
+### Using `var`
+
+```javascript
+if (true) {
+    var age = 25;
+}
+
+console.log(age);
+```
+
+### Output
+
+```text
+25
+```
+
+### Explanation
+
+`var` is not block-scoped.
+
+It ignores the `if` block boundary and is accessible outside the block, provided it is not enclosed within a function.
+
+---
+
+### Using `let`
+
+```javascript
+if (true) {
+    let age = 25;
+}
+
+console.log(age);
+```
+
+### Output
+
+```text
+ReferenceError: age is not defined
+```
+
+### Explanation
+
+`let` is block-scoped, so it cannot be accessed outside the block in which it was declared.
+
+---
+
+### Using `const`
+
+```javascript
+if (true) {
+    const age = 25;
+}
+
+console.log(age);
+```
+
+### Output
+
+```text
+ReferenceError: age is not defined
+```
+
+### Explanation
+
+`const` is also block-scoped.
+
+---
+
+## 5. Scope Comparison
+
+| Scope | Declaration Location | Accessibility |
+|---|---|---|
+| Global Scope | Top-level, outside functions and blocks | Throughout the applicable global scope |
+| Function Scope | Inside a function | Inside that function and nested scopes |
+| Block Scope | Inside `{}` using `let` or `const` | Inside that block and nested scopes |
+
+---
+
+## 6. `var`, `let`, and `const` Comparison
+
+| Variable | Function Scoped | Block Scoped |
+|---|---|---|
+| `var` | Yes | No |
+| `let` | No | Yes |
+| `const` | No | Yes |
+
+### Remember
+
+- `var` is function-scoped.
+- `let` is block-scoped.
+- `const` is block-scoped.
+
+---
+
+## 7. Practical Example Combining All Scopes
+
+```javascript
+const company = "ABC";
+
+function employee() {
+    let employeeName = "Vipul";
+
+    if (true) {
+        const role = "Developer";
+
+        console.log(company);
+        console.log(employeeName);
+        console.log(role);
+    }
+
+    console.log(employeeName);
+    console.log(role);
+}
+
+employee();
+
+console.log(company);
+console.log(employeeName);
+```
+
+### Explanation
+
+| Variable | Scope | Accessibility |
+|---|---|---|
+| `company` | Global | Accessible throughout the applicable scope |
+| `employeeName` | Function | Accessible inside the function and its nested scopes |
+| `role` | Block | Accessible inside the `if` block and its nested scopes |
+
+### What will happen?
+
+- `company` can be accessed inside the function and outside it.
+- `employeeName` can be accessed inside `employee()` but not outside.
+- `role` can be accessed inside the `if` block but not outside it.
+- `console.log(role)` outside the `if` block throws a `ReferenceError`.
+- `console.log(employeeName)` outside the function throws a `ReferenceError`.
+
+---
+
+## 8. Real-Life Analogy
+
+Think about scope like access permissions in an office.
+
+### Global Scope
+
+A notice board accessible to everyone in the office.
+
+### Function Scope
+
+A private meeting room. People outside cannot directly access the information inside.
+
+### Block Scope
+
+A restricted area within the meeting room. Only people inside that area can access its resources.
+
+---
+
+## 9. Interview Revision
+
+### What is Scope?
+
+Scope determines where variables and functions can be accessed in JavaScript.
+
+### What is Global Scope?
+
+Variables declared at the top level can generally be accessed throughout the applicable global scope.
+
+### What is Function Scope?
+
+Variables declared inside a function can only be directly accessed within that function and its nested scopes.
+
+### What is Block Scope?
+
+Variables declared using `let` and `const` inside curly braces can only be accessed within that block and its nested scopes.
+
+### Is `var` block-scoped?
+
+No. `var` is function-scoped, not block-scoped.
+
+### Are `let` and `const` block-scoped?
+
+Yes. Both `let` and `const` are block-scoped.
+
+---
+
+## 10. Important Topics to Study Next
+
+After understanding scope, study these concepts in order:
+
+1. Lexical Scope
+2. Scope Chain
+3. Variable Shadowing
+4. Hoisting
+5. Temporal Dead Zone (TDZ)
+6. Closures
+
+These concepts are closely related and are frequently asked in JavaScript interviews.
+
 
 
 
