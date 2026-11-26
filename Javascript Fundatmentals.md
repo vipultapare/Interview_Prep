@@ -3432,6 +3432,448 @@ Lexical scope is also the foundation of closures in JavaScript.
 
 
 
+# JavaScript `this` Keyword
+
+## 1. What is `this` in JavaScript?
+
+The `this` keyword refers to the context in which a function is called.
+
+In simple words, `this` helps a function identify who is calling it.
+
+**For regular functions, the value of `this` depends on how the function is called, not where the function is written.**
+
+---
+
+## 2. `this` Inside an Object
+
+```javascript
+const person = {
+  name: "Vipul",
+
+  greet: function () {
+    console.log(this.name);
+  }
+};
+
+person.greet();
+```
+
+### Output
+
+```text
+Vipul
+```
+
+### Explanation
+
+1. We created an object called `person`.
+2. It contains a property called `name`.
+3. We created a method called `greet()`.
+4. Inside `greet()`, we used `this.name`.
+5. We called the function using `person.greet()`.
+
+Since `person` is calling the method, `this` refers to the `person` object.
+
+Therefore:
+
+```javascript
+this.name
+```
+
+is equivalent to:
+
+```javascript
+person.name
+```
+
+---
+
+## 3. `this` Inside a Regular Function
+
+```javascript
+function greet() {
+  console.log(this);
+}
+
+greet();
+```
+
+The value of `this` depends on whether strict mode is enabled and on the execution environment.
+
+### In Strict Mode
+
+```javascript
+"use strict";
+
+function greet() {
+  console.log(this);
+}
+
+greet();
+```
+
+### Output
+
+```text
+undefined
+```
+
+### Explanation
+
+When a regular function is called without an object in strict mode, `this` is `undefined`.
+
+In non-strict browser scripts, a standalone regular function generally has `this` referring to the global object.
+
+---
+
+## 4. `this` Inside a Nested Regular Function
+
+```javascript
+const person = {
+  name: "Vipul",
+
+  greet: function () {
+    console.log(this.name);
+
+    function inner() {
+      console.log(this.name);
+    }
+
+    inner();
+  }
+};
+
+person.greet();
+```
+
+### Output in a Non-Strict Browser Script
+
+```text
+Vipul
+undefined
+```
+
+### Explanation
+
+1. `person.greet()` is called.
+2. `this` inside `greet()` refers to `person`.
+3. The `inner()` function is called separately.
+4. `inner()` is called as a standalone function.
+5. Therefore, `this` inside `inner()` does not automatically refer to `person`.
+
+In a strict-mode context, `this` inside `inner()` would be `undefined`.
+
+**A nested regular function does not automatically inherit `this` from its parent function.**
+
+---
+
+## 5. `this` Inside an Arrow Function
+
+Arrow functions do not have their own `this`.
+
+They inherit `this` from their surrounding lexical scope.
+
+### Example
+
+```javascript
+const person = {
+  name: "Vipul",
+
+  greet: function () {
+    const inner = () => {
+      console.log(this.name);
+    };
+
+    inner();
+  }
+};
+
+person.greet();
+```
+
+### Output
+
+```text
+Vipul
+```
+
+### Explanation
+
+1. `person.greet()` is called.
+2. `this` inside `greet()` refers to `person`.
+3. `inner` is an arrow function.
+4. Arrow functions do not create their own `this`.
+5. The arrow function inherits `this` from `greet()`.
+6. Therefore, `this.name` prints `Vipul`.
+
+---
+
+## 6. Regular Function vs Arrow Function
+
+| Regular Function | Arrow Function |
+|---|---|
+| Has its own `this` binding. | Does not have its own `this`. |
+| `this` depends on how the function is called. | `this` comes from the surrounding lexical scope. |
+| Can use `call()`, `apply()` and `bind()` to set its `this`. | Cannot replace its inherited `this` using `call()`, `apply()` or `bind()`. |
+| Commonly used for object methods. | Useful for callbacks and nested functions. |
+
+### Example
+
+```javascript
+const person = {
+  name: "Vipul",
+
+  regular: function () {
+    console.log(this.name);
+  },
+
+  arrow: () => {
+    console.log(this.name);
+  }
+};
+
+person.regular();
+person.arrow();
+```
+
+### Explanation
+
+- `regular()` is called through `person`, so its `this` refers to `person`.
+- `arrow()` does not have its own `this`.
+- It uses the `this` from the surrounding lexical scope, not `person`.
+
+**Avoid using arrow functions as object methods when you expect `this` to refer to the object itself.**
+
+---
+
+## 7. `this` With `call()`
+
+The `call()` method allows us to specify what `this` should refer to when a function executes.
+
+```javascript
+function greet() {
+  console.log("Hello " + this.name);
+}
+
+const person = {
+  name: "Vipul"
+};
+
+greet.call(person);
+```
+
+### Output
+
+```text
+Hello Vipul
+```
+
+### Explanation
+
+```javascript
+greet.call(person);
+```
+
+Here, we explicitly tell JavaScript to execute `greet()` with `this` referring to `person`.
+
+---
+
+## 8. `this` With `apply()`
+
+The `apply()` method works similarly to `call()`, but it accepts function arguments through an array-like argument list.
+
+```javascript
+function introduce(city, role) {
+  console.log(this.name + " from " + city + " is a " + role);
+}
+
+const person = {
+  name: "Vipul"
+};
+
+introduce.apply(person, ["Nagpur", "Developer"]);
+```
+
+### Output
+
+```text
+Vipul from Nagpur is a Developer
+```
+
+### Explanation
+
+- The first argument specifies what `this` should refer to.
+- The second argument is an array-like argument list containing the function arguments.
+
+---
+
+## 9. `this` With `bind()`
+
+The `bind()` method creates a new function with a fixed `this` value.
+
+```javascript
+function greet() {
+  console.log("Hello " + this.name);
+}
+
+const person = {
+  name: "Vipul"
+};
+
+const newFunction = greet.bind(person);
+
+newFunction();
+```
+
+### Output
+
+```text
+Hello Vipul
+```
+
+### Explanation
+
+`bind()` does not immediately execute the function.
+
+Instead, it returns a new function where `this` is bound to `person`.
+
+---
+
+## 10. Difference Between `call()`, `apply()` and `bind()`
+
+| Method | Description |
+|---|---|
+| `call()` | Executes the function immediately with a specified `this` and individual arguments. |
+| `apply()` | Executes the function immediately with a specified `this` and an array-like argument list. |
+| `bind()` | Returns a new function with a specified `this` value. |
+
+---
+
+## 11. `this` Inside JavaScript Classes
+
+```javascript
+class Person {
+  constructor(name) {
+    this.name = name;
+  }
+
+  greet() {
+    console.log("Hello " + this.name);
+  }
+}
+
+const person = new Person("Vipul");
+
+person.greet();
+```
+
+### Output
+
+```text
+Hello Vipul
+```
+
+### Explanation
+
+1. We created a class called `Person`.
+2. The constructor receives a `name`.
+3. `this.name = name` stores the name on the new instance.
+4. We created an object using `new Person("Vipul")`.
+5. When `person.greet()` is called, `this` refers to the `person` instance.
+
+---
+
+## 12. How to Determine `this` in an Interview?
+
+When an interviewer gives you a `this` question, follow these steps:
+
+1. Is it a regular function or an arrow function?
+2. If it is a regular function, how is it being called?
+3. Is it called through an object, like `obj.method()`?
+4. Is it called as a standalone function?
+5. Is `call()`, `apply()` or `bind()` used?
+6. Is the function being called using `new`?
+
+### Quick Reference
+
+| Situation | Value of `this` |
+|---|---|
+| `obj.method()` | `obj` |
+| Standalone regular function in strict mode | `undefined` |
+| Standalone regular function in a non-strict browser script | Global object |
+| Arrow function | Inherited from surrounding lexical scope |
+| Function called with `new` | Newly created instance |
+| `call()` | Explicitly provided object |
+| `apply()` | Explicitly provided object |
+| `bind()` | Bound object |
+
+---
+
+## 13. Interview Questions
+
+### Q1. What is `this` in JavaScript?
+
+The `this` keyword refers to the context determined by how a function is invoked. For regular functions, its value is generally determined by the call site.
+
+### Q2. What is the difference between `this` in a regular function and an arrow function?
+
+A regular function has its own `this` binding, which depends on how it is called. An arrow function does not have its own `this`; it inherits `this` from its surrounding lexical scope.
+
+### Q3. Can we change `this` in an arrow function using `bind()`?
+
+No. Arrow functions inherit `this` from their surrounding scope. Their `this` cannot be replaced using `bind()`, `call()` or `apply()`.
+
+### Q4. What is `bind()`?
+
+`bind()` creates a new function with a fixed `this` value and can also preset some arguments.
+
+### Q5. What is the difference between `call()`, `apply()` and `bind()`?
+
+- `call()` executes a function immediately with a specified `this` and individual arguments.
+- `apply()` executes a function immediately with a specified `this` and an array-like argument list.
+- `bind()` returns a new function with a specified `this` value.
+
+### Q6. What does `this` refer to inside a constructor?
+
+When a constructor function is called using `new`, `this` refers to the newly created instance.
+
+---
+
+## 14. Quick Revision
+
+- `this` depends on how a regular function is called.
+- In `obj.method()`, `this` generally refers to `obj`.
+- In a standalone regular function, `this` is `undefined` in strict mode.
+- Arrow functions do not have their own `this`.
+- Arrow functions inherit `this` from the surrounding lexical scope.
+- `call()` executes a function with a specified `this`.
+- `apply()` executes a function with a specified `this` and array-like arguments.
+- `bind()` returns a function with a fixed `this`.
+- In a constructor called with `new`, `this` refers to the new instance.
+
+---
+
+## 15. Remember This
+
+**Regular Function:**
+
+`this` depends on how the function is called.
+
+**Arrow Function:**
+
+`this` comes from its surrounding lexical scope.
+
+**Object Method:**
+
+When called as `object.method()`, `this` generally refers to the object.
+
+**call, apply and bind:**
+
+They help control `this` for regular functions.
+
+
+
+
 
 
 
