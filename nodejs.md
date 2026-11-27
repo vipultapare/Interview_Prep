@@ -1195,3 +1195,683 @@ Therefore, Node.js is single-threaded in terms of its main JavaScript execution,
 **Node.js is single-threaded for JavaScript execution, not single-threaded in its entire runtime architecture.**
 
 
+# Blocking vs Non-blocking I/O in Node.js
+
+# 1. What is I/O?
+
+I/O stands for **Input/Output**.
+
+I/O means a program communicates with something outside its own JavaScript execution.
+
+Examples of I/O operations:
+
+- Reading a file
+- Writing a file
+- Fetching data from a database
+- Calling an external API
+- Sending HTTP requests
+- Receiving data from a network
+
+### Example
+
+```javascript
+const fs = require("fs");
+
+const data = fs.readFileSync("data.txt", "utf8");
+
+console.log(data);
+```
+
+Here, Node.js reads data from a file.
+
+Reading the file is an I/O operation.
+
+---
+
+# 2. What is Blocking?
+
+**Blocking means that the execution of further JavaScript code has to wait until the current operation finishes.**
+
+When a blocking operation is running on the main JavaScript thread, the thread cannot execute other JavaScript code in that flow until the operation completes.
+
+## Real-life example
+
+Imagine you are working at a restaurant counter.
+
+1. Customer A orders coffee.
+2. You start preparing the coffee.
+3. You wait until the coffee is ready.
+4. While waiting, you don't serve Customer B.
+5. Once the coffee is ready, you serve Customer B.
+
+You are waiting for one task to finish before moving to the next task.
+
+This is similar to blocking.
+
+---
+
+# 3. Blocking I/O in Node.js
+
+Node.js provides synchronous methods that block the main JavaScript thread.
+
+For example:
+
+```javascript
+const fs = require("fs");
+
+console.log("Start");
+
+const data = fs.readFileSync("data.txt", "utf8");
+
+console.log(data);
+
+console.log("End");
+```
+
+Assume `data.txt` contains:
+
+```text
+Hello Node.js
+```
+
+## Output
+
+```text
+Start
+Hello Node.js
+End
+```
+
+## How does it work?
+
+### Step 1
+
+```javascript
+console.log("Start");
+```
+
+The main JavaScript thread executes this statement.
+
+Output:
+
+```text
+Start
+```
+
+### Step 2
+
+```javascript
+const data = fs.readFileSync("data.txt", "utf8");
+```
+
+Node.js starts reading the file synchronously.
+
+The main JavaScript thread waits until the operation finishes.
+
+### Step 3
+
+Once the file reading is complete, the data is returned.
+
+### Step 4
+
+```javascript
+console.log(data);
+```
+
+The file contents are printed.
+
+### Step 5
+
+```javascript
+console.log("End");
+```
+
+The final statement executes.
+
+## Execution flow
+
+```text
+Start
+  |
+  v
+readFileSync()
+  |
+  v
+Main JavaScript thread waits
+  |
+  v
+File reading completes
+  |
+  v
+Print file data
+  |
+  v
+End
+```
+
+## Important
+
+While the synchronous file-reading operation is waiting, the main JavaScript thread cannot execute other JavaScript code.
+
+This is called **Blocking I/O**.
+
+---
+
+# 4. What is Non-blocking I/O?
+
+**Non-blocking I/O means that Node.js initiates an operation and allows the main JavaScript thread to continue executing other JavaScript code without waiting for that operation to finish.**
+
+When the operation completes, its callback or Promise continuation is scheduled for execution.
+
+## Real-life example
+
+Imagine you are a waiter in a restaurant.
+
+1. Customer A orders food.
+2. You send the order to the kitchen.
+3. You don't stand in the kitchen waiting.
+4. You go to Customer B and take their order.
+5. You serve Customer C.
+6. When Customer A's food is ready, you serve Customer A.
+
+You don't wait for one task to finish before moving to another.
+
+This is the basic idea of non-blocking I/O.
+
+---
+
+# 5. Non-blocking I/O in Node.js
+
+Node.js provides asynchronous I/O methods.
+
+For example:
+
+```javascript
+const fs = require("fs");
+
+console.log("Start");
+
+fs.readFile("data.txt", "utf8", (err, data) => {
+    if (err) {
+        console.log(err);
+        return;
+    }
+
+    console.log(data);
+});
+
+console.log("End");
+```
+
+Assume `data.txt` contains:
+
+```text
+Hello Node.js
+```
+
+## Output
+
+```text
+Start
+End
+Hello Node.js
+```
+
+Notice that `End` is printed before the file contents.
+
+Why?
+
+Because Node.js does not wait for the file-reading operation to finish before executing the next statement.
+
+---
+
+# 6. How does Non-blocking I/O work?
+
+Let's understand the execution step-by-step.
+
+## Step 1: Start
+
+```javascript
+console.log("Start");
+```
+
+The main JavaScript thread executes the statement.
+
+Output:
+
+```text
+Start
+```
+
+## Step 2: Initiate file reading
+
+```javascript
+fs.readFile("data.txt", "utf8", callback);
+```
+
+Node.js initiates the asynchronous file-reading operation.
+
+The main JavaScript thread does not wait for the file reading to finish.
+
+## Step 3: Continue executing JavaScript
+
+```javascript
+console.log("End");
+```
+
+The main JavaScript thread continues executing the next statement.
+
+Output:
+
+```text
+End
+```
+
+## Step 4: File reading completes
+
+The underlying file-reading operation completes.
+
+Node.js schedules the callback when it can be executed.
+
+## Step 5: Callback executes
+
+```javascript
+console.log(data);
+```
+
+The file contents are printed.
+
+## Execution flow
+
+```text
+Start
+  |
+  v
+fs.readFile()
+  |
+  +---------------------------+
+  |                           |
+  v                           v
+Main thread continues     File reading happens
+  |                           |
+  v                           |
+Print End                      |
+  |                           |
+  |                           v
+  |                     File reading completes
+  |                           |
+  +---------------------------+
+              |
+              v
+        Callback executes
+              |
+              v
+        Print file data
+```
+
+---
+
+# 7. Blocking vs Non-blocking
+
+| Blocking I/O | Non-blocking I/O |
+|---|---|
+| The main thread waits for the operation to finish. | The main thread doesn't wait for the operation to finish. |
+| Further JavaScript code in that flow cannot execute until the operation returns. | Further JavaScript code can execute while the operation is in progress. |
+| Can prevent the main thread from handling other work during the wait. | Allows the main thread to handle other work while I/O is pending. |
+| Often uses synchronous APIs. | Often uses asynchronous APIs. |
+| `fs.readFileSync()` | `fs.readFile()` |
+| Poor fit for blocking waits in busy servers. | Generally preferred for I/O-heavy server applications. |
+
+---
+
+# 8. Blocking Example
+
+```javascript
+const fs = require("fs");
+
+console.log("Request 1: Started");
+
+const data = fs.readFileSync("data.txt", "utf8");
+
+console.log("Request 1: File completed");
+
+console.log("Request 2: Started");
+```
+
+## Output
+
+```text
+Request 1: Started
+Request 1: File completed
+Request 2: Started
+```
+
+## Execution
+
+```text
+Request 1 starts
+       |
+       v
+File reading starts
+       |
+       v
+Main thread waits
+       |
+       v
+File reading finishes
+       |
+       v
+Request 1 continues
+       |
+       v
+Request 2 starts
+```
+
+Request 2 cannot execute on this thread until the blocking operation returns.
+
+---
+
+# 9. Non-blocking Example
+
+```javascript
+const fs = require("fs");
+
+console.log("Request 1: Started");
+
+fs.readFile("data.txt", "utf8", (err, data) => {
+    if (err) {
+        console.log(err);
+        return;
+    }
+
+    console.log("Request 1: File completed");
+});
+
+console.log("Request 2: Started");
+```
+
+## Output
+
+```text
+Request 1: Started
+Request 2: Started
+Request 1: File completed
+```
+
+## Execution
+
+```text
+Request 1 starts
+       |
+       v
+File reading initiated
+       |
+       +--------------------------+
+       |                          |
+       v                          v
+Main thread continues       File reading happens
+       |                          |
+       v                          |
+Request 2 starts                   |
+       |                          v
+       |                    File reading completes
+       |                          |
+       +--------------------------+
+                   |
+                   v
+             Callback executes
+```
+
+Request 2 doesn't have to wait for Request 1's file reading to finish.
+
+---
+
+# 10. Why is Non-blocking I/O important?
+
+Imagine a Node.js backend server receives three requests.
+
+- Request A: Fetch data from a database.
+- Request B: Call an external API.
+- Request C: Return a simple response.
+
+## Blocking scenario
+
+Suppose Request A performs a blocking operation that takes 5 seconds.
+
+```text
+Main JavaScript Thread
+
+Request A
+|
+|---- Waiting for database (5 seconds)
+|
+Request B  ---- Waiting
+|
+Request C  ---- Waiting
+```
+
+While the main thread is blocked, it cannot execute other JavaScript callbacks.
+
+This can reduce the server's ability to handle work.
+
+## Non-blocking scenario
+
+Request A initiates a database operation asynchronously.
+
+While the database is working:
+
+- Request B can be processed.
+- Request C can be processed.
+- Other JavaScript work can execute.
+
+```text
+Main JavaScript Thread
+
+Request A
+|
+|---- Database operation initiated
+|
+Request B
+|
+Request C
+|
+Other work
+|
+Request A callback when result is available
+```
+
+This allows Node.js to handle multiple I/O operations concurrently.
+
+---
+
+# 11. Does Non-blocking mean Parallel Execution?
+
+No!
+
+Non-blocking and parallelism are different concepts.
+
+## Non-blocking
+
+The main thread does not wait for an I/O operation to finish.
+
+It can continue executing other JavaScript code.
+
+## Parallelism
+
+Multiple tasks are actually executing at the same time on different execution resources.
+
+### Example
+
+```javascript
+console.log("A");
+
+setTimeout(() => {
+    console.log("B");
+}, 1000);
+
+console.log("C");
+```
+
+## Output
+
+```text
+A
+C
+B
+```
+
+`A` and `C` execute on the main JavaScript thread.
+
+The timer is initiated and JavaScript continues.
+
+When the timer completes, the callback is scheduled and eventually executes on the main JavaScript thread.
+
+Node.js can manage concurrent operations without necessarily executing JavaScript simultaneously.
+
+---
+
+# 12. Concurrency vs Parallelism vs Non-blocking
+
+| Concept | Meaning |
+|---|---|
+| Blocking | The execution waits for an operation to complete. |
+| Non-blocking | The execution can continue without waiting for an operation. |
+| Concurrency | Multiple tasks can make progress during overlapping periods of time. |
+| Parallelism | Multiple tasks can actually execute at the same time. |
+
+---
+
+# 13. What happens with `await`?
+
+Consider the following code:
+
+```javascript
+async function getData() {
+    console.log("1. Start");
+
+    const data = await fetchData();
+
+    console.log("3. Data received");
+}
+
+console.log("Outside");
+
+getData();
+
+console.log("End");
+```
+
+Assuming `fetchData()` returns a Promise that resolves later.
+
+The `await` pauses the execution of the particular async function until its Promise settles.
+
+It does not block the entire main JavaScript thread.
+
+The main thread can execute other JavaScript work while the async function is suspended.
+
+## Important
+
+`await` does not mean blocking the entire Node.js thread.
+
+It suspends the current async function and allows the event loop to process other work.
+
+---
+
+# 14. Blocking vs Non-blocking APIs in Node.js
+
+| Blocking API | Non-blocking API |
+|---|---|
+| `fs.readFileSync()` | `fs.readFile()` |
+| `fs.writeFileSync()` | `fs.writeFile()` |
+| `fs.appendFileSync()` | `fs.appendFile()` |
+| `fs.unlinkSync()` | `fs.unlink()` |
+| `fs.mkdirSync()` | `fs.mkdir()` |
+
+The synchronous methods generally block the main JavaScript thread while the operation executes.
+
+The asynchronous versions allow the main thread to continue while the I/O operation is in progress.
+
+---
+
+# 15. Blocking I/O in a Backend Application
+
+Consider an Express application.
+
+```javascript
+const express = require("express");
+
+const app = express();
+
+app.get("/users", async (req, res) => {
+    const users = await database.query("SELECT * FROM users");
+
+    res.json(users);
+});
+
+app.listen(3000);
+```
+
+When the database query is awaiting its result:
+
+1. The request handler's async function is suspended.
+2. The main JavaScript thread is not blocked by that asynchronous wait.
+3. Node.js can process other work.
+4. When the Promise settles, the handler resumes when scheduled.
+5. The response is sent.
+
+This is why asynchronous database operations are important in Node.js applications.
+
+---
+
+# 16. Interview Questions
+
+## Q1. What is Non-blocking I/O in Node.js?
+
+Non-blocking I/O in Node.js means that when an I/O operation such as reading a file, querying a database, or making a network request is initiated, the main JavaScript thread does not wait for the operation to complete. Instead, Node.js initiates or delegates the operation using the appropriate underlying mechanism and continues executing other JavaScript code. When the operation completes, its callback or Promise continuation is scheduled for execution. This allows Node.js to handle multiple I/O operations concurrently and improves application throughput.
+
+## Q2. What is the difference between Blocking and Non-blocking I/O?
+
+Blocking I/O means the execution of further JavaScript code has to wait until the current I/O operation completes. Non-blocking I/O means the main JavaScript thread can continue executing other code while the I/O operation is in progress. Node.js generally prefers non-blocking I/O for server applications because it helps handle multiple requests efficiently without blocking the main JavaScript thread during I/O waits.
+
+## Q3. Why does Node.js use Non-blocking I/O?
+
+Node.js uses non-blocking I/O to avoid blocking the main JavaScript thread while waiting for operations such as database queries, file reading and network requests. This allows the main thread to handle other work and improves throughput for I/O-heavy applications.
+
+## Q4. Does Non-blocking mean JavaScript executes in parallel?
+
+No. Non-blocking means the main JavaScript thread doesn't have to wait for an operation to finish. JavaScript code can still execute on a single main thread. Parallel execution requires multiple execution resources working simultaneously.
+
+## Q5. Does `await` block Node.js?
+
+No. `await` suspends the execution of the particular async function until the awaited Promise settles. It does not block the entire JavaScript thread, allowing Node.js to process other work.
+
+---
+
+# 17. Quick Revision
+
+- I/O means Input/Output.
+- Examples: Files, databases, APIs and network communication.
+- Blocking means waiting for an operation to complete before continuing.
+- Non-blocking means initiating an operation and continuing without waiting for it to complete.
+- `fs.readFileSync()` is blocking.
+- `fs.readFile()` is non-blocking.
+- Blocking I/O can prevent the main JavaScript thread from handling other work.
+- Non-blocking I/O allows the main thread to work on other tasks while I/O is pending.
+- Node.js uses non-blocking I/O to improve throughput and handle concurrent requests.
+- Non-blocking does not mean parallel execution.
+- `await` suspends the particular async function, not the entire JavaScript thread.
+
+---
+
+# Remember This
+
+**Blocking I/O makes the main JavaScript thread wait.**
+
+**Non-blocking I/O allows the main JavaScript thread to continue working while the I/O operation is in progress.**
+
+This is one of the major reasons Node.js is effective for I/O-heavy applications.
+```
+
+If you'd like, we can continue in the same format with **Concurrency vs Parallelism in Node.js**, which is the natural next topic after non-blocking I/O.
+
+
