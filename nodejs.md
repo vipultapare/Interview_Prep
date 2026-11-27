@@ -1875,3 +1875,700 @@ This is one of the major reasons Node.js is effective for I/O-heavy applications
 If you'd like, we can continue in the same format with **Concurrency vs Parallelism in Node.js**, which is the natural next topic after non-blocking I/O.
 
 
+
+# Node.js Streams
+
+## 1. What are Streams in Node.js?
+
+Streams are a way of processing data piece by piece (in chunks) instead of loading the entire data into memory at once.
+
+Streams are useful when working with:
+
+- Large files
+- Videos
+- Images
+- HTTP requests
+- HTTP responses
+- Network communication
+- File uploads and downloads
+
+### Real-life example
+
+Imagine a large water tank connected to a pipe.
+
+Instead of emptying the entire tank before using the water, water flows through the pipe continuously.
+
+You receive water as it flows.
+
+Streams work in a similar way.
+
+Instead of loading all the data into memory at once, Node.js can read and process data in smaller chunks.
+
+---
+
+## 2. Why do we need Streams?
+
+Imagine you have a 1 GB file.
+
+### Without Streams
+
+You might load the entire file into memory before processing it.
+
+```javascript
+const fs = require("fs");
+
+const data = fs.readFileSync("large-file.txt");
+
+console.log(data);
+```
+
+Here, the file is loaded into memory before the function returns.
+
+### Potential problems
+
+- High memory consumption.
+- Processing starts after the entire file has been read.
+- Multiple large files can put pressure on RAM.
+- May cause out-of-memory problems.
+
+### With Streams
+
+```javascript
+const fs = require("fs");
+
+const readableStream = fs.createReadStream("large-file.txt");
+
+readableStream.on("data", (chunk) => {
+    console.log("Received chunk");
+});
+```
+
+Node.js reads the file in chunks.
+
+Instead of loading the entire file into memory, your application can process each chunk as it arrives.
+
+### Benefits of Streams
+
+- Memory efficient when processing large data.
+- Processing can begin before the entire data has arrived.
+- Useful for handling large files.
+- Useful for file uploads and downloads.
+- Useful for HTTP and network communication.
+- Helps avoid unnecessarily buffering entire data sets in memory.
+
+---
+
+## 3. What is a Chunk?
+
+A chunk is a small piece of data that is delivered or processed as part of a stream.
+
+Imagine a file contains:
+
+```text
+Hello Node.js, I am learning Streams.
+```
+
+The stream might deliver the data in chunks such as:
+
+```text
+Chunk 1: Hello Node
+Chunk 2: .js, I am
+Chunk 3: learning
+Chunk 4: Streams.
+```
+
+These are illustrative chunk boundaries. Actual chunk sizes and boundaries depend on the underlying stream and system.
+
+### Example
+
+```javascript
+const fs = require("fs");
+
+const readableStream = fs.createReadStream("data.txt");
+
+readableStream.on("data", (chunk) => {
+    console.log(chunk);
+});
+```
+
+Each time the stream emits a `data` event, the callback receives a chunk.
+
+A chunk is not necessarily a complete line, sentence, JSON object or record.
+
+It is simply a piece of data.
+
+---
+
+# 4. The Four Types of Streams
+
+Node.js has four fundamental stream types.
+
+| Stream | Purpose |
+|---|---|
+| Readable | Read data |
+| Writable | Write data |
+| Duplex | Read and write data |
+| Transform | Read, process, and output data |
+
+---
+
+# 5. Readable Stream
+
+A Readable Stream is used to read data piece by piece from a source.
+
+### Examples
+
+- Reading files.
+- Receiving HTTP request data.
+- Reading data from network connections.
+
+### Example: Reading a file
+
+```javascript
+const fs = require("fs");
+
+const readableStream = fs.createReadStream("data.txt");
+
+readableStream.on("data", (chunk) => {
+    console.log("Received chunk:");
+    console.log(chunk.toString());
+});
+
+readableStream.on("end", () => {
+    console.log("Finished reading file");
+});
+
+readableStream.on("error", (err) => {
+    console.log("Error:", err.message);
+});
+```
+
+### What happens?
+
+| Code | Meaning |
+|---|---|
+| `fs.createReadStream()` | Creates a readable stream. |
+| `data` event | Fires when a chunk is available for consumption. |
+| `chunk` | The piece of data received. |
+| `chunk.toString()` | Converts the Buffer into readable text. |
+| `end` event | Indicates that no more data is available to read. |
+| `error` event | Handles stream errors. |
+
+### Example output
+
+```text
+Received chunk:
+Hello Node.js
+Finished reading file
+```
+
+The output depends on the file size and the chunk boundaries.
+
+A small file may arrive in one chunk, while a large file may arrive in multiple chunks.
+
+---
+
+# 6. Writable Stream
+
+A Writable Stream is used to write data to a destination piece by piece.
+
+### Examples
+
+- Writing files.
+- Sending data to network connections.
+- Writing data to HTTP responses.
+
+### Example: Writing to a file
+
+```javascript
+const fs = require("fs");
+
+const writableStream = fs.createWriteStream("output.txt");
+
+writableStream.write("Hello ");
+writableStream.write("Node.js ");
+writableStream.write("Streams!");
+
+writableStream.end();
+
+writableStream.on("finish", () => {
+    console.log("Writing completed");
+});
+```
+
+### How does it work?
+
+#### Step 1
+
+```javascript
+const writableStream = fs.createWriteStream("output.txt");
+```
+
+Creates a writable stream to write data into the file.
+
+#### Step 2
+
+```javascript
+writableStream.write("Hello ");
+```
+
+Writes a piece of data.
+
+#### Step 3
+
+```javascript
+writableStream.write("Node.js ");
+```
+
+Writes another piece of data.
+
+#### Step 4
+
+```javascript
+writableStream.write("Streams!");
+```
+
+Writes another piece of data.
+
+#### Step 5
+
+```javascript
+writableStream.end();
+```
+
+Signals that no more data will be written.
+
+#### Step 6
+
+The `finish` event fires when all data has been processed by the writable stream.
+
+### Output in output.txt
+
+```text
+Hello Node.js Streams!
+```
+
+### Important
+
+- `write()` sends data into the writable stream.
+- `end()` signals that writing is complete.
+- `finish` indicates that the writable stream has finished processing the data.
+
+---
+
+# 7. Duplex Stream
+
+A Duplex Stream can both read data and write data.
+
+Imagine a telephone conversation.
+
+- You can hear the other person.
+- You can speak to the other person.
+
+Both directions of communication are possible.
+
+A Duplex Stream works similarly.
+
+### Example
+
+A TCP socket is a Duplex Stream.
+
+```text
+             TCP Socket
+
+     Incoming data       Outgoing data
+          |                   |
+          v                   v
+        READ                WRITE
+          |                   |
+          +-------- Socket ----+
+```
+
+A socket can:
+
+- Receive data from another system.
+- Send data to another system.
+
+Both operations can happen independently.
+
+### Where are Duplex Streams used?
+
+- TCP sockets.
+- Network communication.
+- Communication channels.
+
+### Simple definition
+
+A Duplex Stream can read and write data, but the readable and writable sides do not necessarily have to be related.
+
+---
+
+# 8. Transform Stream
+
+A Transform Stream receives data, processes or modifies it, and then produces transformed output.
+
+Imagine a water filtration machine.
+
+- Water enters.
+- The machine processes the water.
+- Clean water comes out.
+
+A Transform Stream works similarly.
+
+### Example: Convert text to uppercase
+
+```javascript
+const { Transform } = require("stream");
+
+const upperCaseTransform = new Transform({
+    transform(chunk, encoding, callback) {
+        const result = chunk.toString().toUpperCase();
+
+        callback(null, result);
+    }
+});
+
+upperCaseTransform.on("data", (chunk) => {
+    console.log(chunk.toString());
+});
+
+upperCaseTransform.write("hello ");
+upperCaseTransform.write("node.js ");
+upperCaseTransform.write("streams");
+
+upperCaseTransform.end();
+```
+
+### Output
+
+```text
+HELLO 
+NODE.JS 
+STREAMS
+```
+
+### How does it work?
+
+| Step | Operation |
+|---|---|
+| 1 | Data is written into the Transform Stream. |
+| 2 | `transform()` processes the incoming chunk. |
+| 3 | The chunk is converted to uppercase. |
+| 4 | The transformed data is sent to the readable side. |
+| 5 | The `data` listener receives the transformed chunk. |
+
+### Where are Transform Streams used?
+
+- Compression.
+- Decompression.
+- Encryption.
+- Decryption.
+- Data formatting.
+- Data processing.
+
+---
+
+# 9. Readable vs Writable vs Duplex vs Transform
+
+| Type | What it does | Example |
+|---|---|---|
+| Readable | Reads data | `fs.createReadStream()` |
+| Writable | Writes data | `fs.createWriteStream()` |
+| Duplex | Reads and writes | TCP socket |
+| Transform | Reads, processes and outputs | Gzip compression |
+
+---
+
+# 10. What is pipe() in Node.js?
+
+`pipe()` connects a Readable Stream to a Writable Stream.
+
+It allows data to flow from the readable source to the writable destination.
+
+### Example
+
+Imagine you want to copy data from:
+
+- `input.txt`
+- To `output.txt`
+
+Instead of manually handling every chunk, you can connect the streams.
+
+```javascript
+const fs = require("fs");
+
+const readableStream = fs.createReadStream("input.txt");
+
+const writableStream = fs.createWriteStream("output.txt");
+
+readableStream.pipe(writableStream);
+```
+
+### Architecture
+
+```text
+input.txt
+    |
+    v
+Readable Stream
+    |
+    v
+   pipe()
+    |
+    v
+Writable Stream
+    |
+    v
+output.txt
+```
+
+### What does pipe() do?
+
+1. Reads data from the source.
+2. Sends chunks to the destination.
+3. Manages flow between streams.
+4. Helps manage buffering and backpressure.
+5. Ends the destination by default when the readable source ends, unless configured otherwise.
+
+---
+
+# 11. What is Backpressure?
+
+Backpressure occurs when data is being produced faster than the destination can consume or process it.
+
+### Real-life example
+
+Imagine:
+
+- A pipe sends water very quickly.
+- A small bucket receives water slowly.
+- Water arrives faster than the bucket can handle.
+
+The bucket is overwhelmed.
+
+This is similar to backpressure in Streams.
+
+### In Node.js
+
+Imagine:
+
+- Readable Stream produces 100 chunks per second.
+- Writable Stream processes only 10 chunks per second.
+
+Without flow control, data could accumulate in memory.
+
+### Architecture
+
+```text
+Readable Stream
+      |
+      | Produces data quickly
+      v
+    Buffer
+      |
+      | Data may accumulate
+      v
+Writable Stream
+      |
+      | Consumes data slowly
+      v
+  Destination
+```
+
+### How do Streams handle it?
+
+Node.js Streams provide buffering and flow-control mechanisms.
+
+When a Writable Stream reaches its buffering threshold, it can signal that the producer should temporarily slow down or stop sending more data.
+
+When the destination is ready again, data flow can resume.
+
+`pipe()` helps manage this flow automatically.
+
+### Why is Backpressure important?
+
+- Prevents excessive memory consumption.
+- Helps manage fast producers and slow consumers.
+- Improves reliability when transferring large amounts of data.
+
+### Simple definition
+
+Backpressure helps prevent a fast data producer from overwhelming a slower data consumer.
+
+---
+
+# 12. What is Buffer in Node.js?
+
+A Buffer is a temporary memory area used to hold binary data.
+
+Node.js often represents stream chunks using Buffer objects.
+
+### Example
+
+```javascript
+const fs = require("fs");
+
+const readableStream = fs.createReadStream("data.txt");
+
+readableStream.on("data", (chunk) => {
+    console.log(chunk);
+    console.log(chunk.toString());
+});
+```
+
+### Buffer output example
+
+```text
+<Buffer 48 65 6c 6c 6f>
+```
+
+This represents the bytes of the text:
+
+```text
+Hello
+```
+
+### Why do we use Buffers?
+
+Computers work with bytes when dealing with many types of data, such as:
+
+- Files.
+- Images.
+- Videos.
+- Network data.
+- Binary data.
+
+Buffers help Node.js work with these bytes.
+
+---
+
+# 13. Streams vs Reading the Entire File
+
+| Reading entire file | Streams |
+|---|---|
+| Loads the file into memory before processing it. | Processes data incrementally. |
+| Can consume more memory for large files. | Can reduce memory consumption. |
+| Processing may begin after the file is fully read. | Processing can begin as chunks arrive. |
+| Convenient for small files. | Particularly useful for large files and data transfer. |
+
+---
+
+# 14. Real-World Stream Use Cases
+
+## A. Reading large files
+
+```javascript
+const fs = require("fs");
+
+const readStream = fs.createReadStream("large-file.csv");
+
+readStream.on("data", (chunk) => {
+    console.log("Processing chunk...");
+});
+```
+
+Useful for:
+
+- CSV files.
+- Log files.
+- Large data files.
+
+## B. File uploads
+
+Streams can help process or forward uploaded data without unnecessarily buffering the entire file.
+
+## C. File downloads
+
+HTTP responses can stream data to clients as it becomes available.
+
+## D. Video streaming
+
+Video data can be delivered incrementally instead of requiring the entire video file to be downloaded before playback begins.
+
+## E. Compression
+
+Transform Streams can compress data.
+
+## F. Logging
+
+Large log files can be processed incrementally.
+
+---
+
+# 15. Interview Questions
+
+## Q1. What are Streams in Node.js?
+
+Streams in Node.js are a mechanism for processing data incrementally, in chunks, instead of loading the entire data into memory at once. They are useful for working with large files, network communication, HTTP requests and responses, and data transformations. Streams help improve memory efficiency and allow processing to begin before all the data has arrived.
+
+## Q2. What are the four types of Streams?
+
+Node.js has four fundamental stream types:
+
+- Readable: Used to read data.
+- Writable: Used to write data.
+- Duplex: Used to read and write data.
+- Transform: Used to read, process or transform data, and output it.
+
+## Q3. What is a Chunk?
+
+A chunk is a piece of data delivered or processed as part of a stream. Instead of processing the entire data at once, streams can process smaller pieces as they arrive.
+
+## Q4. What is pipe()?
+
+`pipe()` connects a Readable Stream to a Writable Stream. It transfers data from the readable source to the writable destination and helps manage data flow and backpressure.
+
+## Q5. What is Backpressure?
+
+Backpressure is a flow-control mechanism that helps prevent a data producer from overwhelming a slower data consumer. Node.js Streams can pause or regulate data flow when the destination cannot keep up.
+
+## Q6. Why do we use Streams?
+
+Streams are useful for processing large data efficiently, reducing memory pressure, and allowing data processing to begin while data is still being received or read.
+
+## Q7. What is the difference between Duplex and Transform Streams?
+
+A Duplex Stream supports reading and writing, and the two sides can operate independently.
+
+A Transform Stream is also readable and writable, but its purpose is to process or transform incoming data and produce output.
+
+## Q8. Does a Stream load the entire file into memory?
+
+Not necessarily. Streams allow data to be processed incrementally. They use buffers internally, but generally do not require the entire file to be loaded into memory at once.
+
+---
+
+# 16. Quick Revision
+
+- A Stream processes data piece by piece.
+- A chunk is a small piece of data.
+- Streams can help reduce memory consumption when processing large data.
+- Readable Streams read data.
+- Writable Streams write data.
+- Duplex Streams read and write.
+- Transform Streams process or transform data.
+- `pipe()` connects streams.
+- Backpressure helps manage data flow when the consumer is slower than the producer.
+- Buffers hold chunks of data temporarily.
+- Streams are useful for files, HTTP, networking, uploads, downloads, compression and other data-processing tasks.
+
+---
+
+# Remember This
+
+**Streams allow Node.js to process data piece by piece instead of loading the entire data into memory at once.**
+
+- Readable = Read
+- Writable = Write
+- Duplex = Read + Write
+- Transform = Read + Process + Output
+- pipe() = Connect streams
+- Backpressure = Prevent a fast producer from overwhelming a slow consumer
+- Buffer = Temporary storage for chunks of binary data
+```
+
+This README follows the fundamental stream concepts in the [official Node.js Streams documentation](https://nodejs.org/api/stream.html). <Cite refs={["turn423425search0"]}/>
+
+Next, I'd recommend **Buffers in Node.js**—it will complete your understanding of how Node.js handles binary data, chunks, and streams.
+
+
