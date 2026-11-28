@@ -1362,3 +1362,774 @@ MODULE
 - **Dependency Injection = Dependencies provided by NestJS**
 
 Understanding these four concepts is the foundation of building backend applications using NestJS.
+
+
+
+# Dependency Injection (DI) and Access Modifiers in NestJS
+
+## 1. What is Dependency Injection (DI)?
+
+Dependency Injection (DI) is a design pattern in which a class receives the objects or dependencies it needs from another system instead of creating those objects itself.
+
+In NestJS, the Dependency Injection system manages the creation and delivery of dependencies to the classes that need them.
+
+### Simple Example
+
+Imagine a ProjectsController needs a ProjectsService to fetch project data.
+
+Without Dependency Injection, the Controller creates the Service itself.
+
+With Dependency Injection, NestJS creates or resolves the Service and provides it to the Controller.
+
+### Basic Flow
+
+```mermaid
+flowchart TD
+    A[NestJS DI Container] --> B[Resolves ProjectsService]
+    B --> C[Injects into ProjectsController]
+    C --> D[Controller uses Service]
+```
+
+---
+
+## 2. What is a Dependency?
+
+A dependency is an object or class that another class requires to perform its work.
+
+For example:
+
+```typescript
+export class ProjectsService {
+  getProjects() {
+    return ['Project A', 'Project B'];
+  }
+}
+```
+
+The ProjectsController needs ProjectsService to retrieve project data.
+
+Therefore, ProjectsService is a dependency of ProjectsController.
+
+---
+
+## 3. Without Dependency Injection
+
+In this approach, the Controller creates the Service by itself using the `new` keyword.
+
+### projects.service.ts
+
+```typescript
+export class ProjectsService {
+  getProjects() {
+    return ['Project A', 'Project B'];
+  }
+}
+```
+
+### projects.controller.ts
+
+```typescript
+export class ProjectsController {
+  private projectsService = new ProjectsService();
+
+  getProjects() {
+    return this.projectsService.getProjects();
+  }
+}
+```
+
+### What is happening?
+
+```typescript
+private projectsService = new ProjectsService();
+```
+
+- `ProjectsService` is a class.
+- `new ProjectsService()` creates an instance of that class.
+- The created instance is assigned to the `projectsService` property.
+- The Controller is responsible for creating its own dependency.
+
+### Problems with this approach
+
+- The Controller is tightly coupled to ProjectsService.
+- The Controller decides how its dependency is created.
+- Replacing the dependency can require modifying the Controller.
+- Testing and mocking dependencies can become more difficult.
+
+---
+
+## 4. What is Dependency Injection in NestJS?
+
+Instead of creating the dependency manually, we allow NestJS to manage and provide it.
+
+### Step 1: Create the Service
+
+#### projects.service.ts
+
+```typescript
+import { Injectable } from '@nestjs/common';
+
+@Injectable()
+export class ProjectsService {
+  getProjects() {
+    return ['Project A', 'Project B'];
+  }
+}
+```
+
+### What is `@Injectable()`?
+
+`@Injectable()` is a decorator that marks a class as available for NestJS's dependency injection system.
+
+It allows NestJS to use the class as a provider and resolve its dependencies.
+
+---
+
+### Step 2: Register the Service in the Module
+
+#### projects.module.ts
+
+```typescript
+import { Module } from '@nestjs/common';
+import { ProjectsController } from './projects.controller';
+import { ProjectsService } from './projects.service';
+
+@Module({
+  controllers: [ProjectsController],
+  providers: [ProjectsService],
+})
+export class ProjectsModule {}
+```
+
+### What is `providers`?
+
+The `providers` array tells NestJS which providers are available in the module's dependency injection context.
+
+```typescript
+providers: [ProjectsService]
+```
+
+Here, we are registering ProjectsService so NestJS can manage and provide it.
+
+---
+
+### Step 3: Inject the Service into the Controller
+
+#### projects.controller.ts
+
+```typescript
+import { Controller, Get } from '@nestjs/common';
+import { ProjectsService } from './projects.service';
+
+@Controller('projects')
+export class ProjectsController {
+  constructor(
+    private readonly projectsService: ProjectsService,
+  ) {}
+
+  @Get()
+  getProjects() {
+    return this.projectsService.getProjects();
+  }
+}
+```
+
+### What is happening here?
+
+```typescript
+constructor(
+  private readonly projectsService: ProjectsService,
+) {}
+```
+
+- `constructor` is the constructor of the class.
+- `projectsService` is the dependency that the Controller needs.
+- `ProjectsService` specifies the dependency's type.
+- NestJS resolves and provides the dependency.
+- `private` restricts access to the property.
+- `readonly` prevents reassignment of the property.
+
+The Controller does not manually create the ProjectsService instance.
+
+NestJS manages the dependency.
+
+---
+
+## 5. How Does NestJS Dependency Injection Work?
+
+When the NestJS application starts, the DI system roughly follows this process:
+
+1. NestJS loads the module.
+2. It checks the providers registered in the module.
+3. It identifies the dependencies required by the Controller.
+4. It resolves and creates or reuses the required provider instances according to their scope.
+5. It injects the dependency into the Controller.
+6. The Controller can use the injected Service.
+
+### Flow Diagram
+
+```mermaid
+flowchart TD
+    A[NestJS Application Starts] --> B[Loads ProjectsModule]
+    B --> C[Finds ProjectsService in Providers]
+    C --> D[Resolves ProjectsService]
+    D --> E[Injects into ProjectsController]
+    E --> F[Controller Uses ProjectsService]
+```
+
+---
+
+## 6. Understanding `new` vs Dependency Injection
+
+### Without DI
+
+```typescript
+export class ProjectsController {
+  private projectsService = new ProjectsService();
+}
+```
+
+Here, the Controller creates the dependency itself.
+
+### With DI
+
+```typescript
+export class ProjectsController {
+  constructor(
+    private readonly projectsService: ProjectsService,
+  ) {}
+}
+```
+
+Here, the Controller declares the dependency it needs, and NestJS provides it.
+
+| Without DI | With DI |
+|---|---|
+| Uses `new ProjectsService()` | Uses constructor injection |
+| Controller creates the dependency | NestJS resolves the dependency |
+| Controller manages creation | DI container manages creation |
+| More tightly coupled | Easier to replace and mock dependencies |
+
+---
+
+# 7. TypeScript Access Modifiers
+
+Access modifiers control where class properties and methods can be accessed.
+
+TypeScript provides three commonly used access modifiers:
+
+- `public`
+- `private`
+- `protected`
+
+---
+
+## 8. Public
+
+`public` allows a property or method to be accessed from anywhere.
+
+In TypeScript, class members are public by default when no access modifier is specified.
+
+### Example
+
+```typescript
+class ProjectsService {
+  public projectName = 'Project A';
+
+  getProjectName() {
+    return this.projectName;
+  }
+}
+```
+
+### Accessing from outside the class
+
+```typescript
+const service = new ProjectsService();
+
+console.log(service.projectName);
+```
+
+This is allowed because `projectName` is public.
+
+### Public in Constructor Injection
+
+```typescript
+constructor(
+  public readonly projectsService: ProjectsService,
+) {}
+```
+
+The projectsService property can be accessed from outside the class.
+
+---
+
+## 9. Private
+
+`private` restricts direct access to a property or method to the class in which it is declared.
+
+### Example
+
+```typescript
+class ProjectsService {
+  private projectName = 'Project A';
+
+  getProjectName() {
+    return this.projectName;
+  }
+}
+```
+
+### Access inside the class
+
+```typescript
+getProjectName() {
+  return this.projectName;
+}
+```
+
+This is allowed.
+
+### Access outside the class
+
+```typescript
+const service = new ProjectsService();
+
+// TypeScript error
+console.log(service.projectName);
+```
+
+This is not allowed because projectName is private.
+
+### Private in Constructor Injection
+
+```typescript
+constructor(
+  private readonly projectsService: ProjectsService,
+) {}
+```
+
+The Controller can access the projectsService property internally.
+
+But other code cannot directly access the property through a ProjectsController instance.
+
+---
+
+## 10. Protected
+
+`protected` allows a property or method to be accessed:
+
+- Inside the class where it is declared.
+- Inside classes that inherit from that class.
+
+It does not allow direct access from unrelated outside code.
+
+### Example
+
+```typescript
+class BaseController {
+  protected projectName = 'Project A';
+}
+
+class ProjectsController extends BaseController {
+  getProjectName() {
+    return this.projectName;
+  }
+}
+```
+
+The ProjectsController can access projectName because it inherits from BaseController.
+
+### Outside Access
+
+```typescript
+const controller = new BaseController();
+
+// TypeScript error
+console.log(controller.projectName);
+```
+
+This is not allowed because projectName is protected.
+
+### Protected in Constructor Injection
+
+```typescript
+constructor(
+  protected readonly projectsService: ProjectsService,
+) {}
+```
+
+This allows the current class and its subclasses to access the dependency.
+
+---
+
+## 11. Comparison of Access Modifiers
+
+| Modifier | Same Class | Subclass | Outside Class |
+|---|---|---|---|
+| `public` | Yes | Yes | Yes |
+| `protected` | Yes | Yes | No |
+| `private` | Yes | No | No |
+
+---
+
+# 12. What is `readonly`?
+
+`readonly` is a TypeScript modifier that prevents a property from being reassigned after its initialization or constructor assignment.
+
+It does not prevent calling methods on the object.
+
+### Example
+
+```typescript
+class ProjectsController {
+  readonly projectName = 'Project A';
+}
+```
+
+### Allowed
+
+```typescript
+console.log(controller.projectName);
+```
+
+### Not Allowed
+
+```typescript
+controller.projectName = 'Project B';
+```
+
+TypeScript reports an error because projectName is readonly.
+
+---
+
+## 13. readonly Does Not Mean the Object Is Immutable
+
+Consider the following:
+
+```typescript
+class DatabaseService {
+  connectionStatus = 'Disconnected';
+
+  connect() {
+    this.connectionStatus = 'Connected';
+  }
+}
+```
+
+Now:
+
+```typescript
+class ProjectsService {
+  constructor(
+    private readonly databaseService: DatabaseService,
+  ) {}
+}
+```
+
+The following is not allowed:
+
+```typescript
+this.databaseService = anotherDatabaseService;
+```
+
+But this is allowed:
+
+```typescript
+this.databaseService.connect();
+```
+
+And the DatabaseService can update its own internal properties.
+
+### Why?
+
+`readonly` prevents reassignment of the property reference.
+
+It does not make the object itself immutable.
+
+---
+
+# 14. Why Do We Use `private readonly` in NestJS?
+
+A common NestJS pattern is:
+
+```typescript
+constructor(
+  private readonly projectsService: ProjectsService,
+) {}
+```
+
+### `private`
+
+The dependency is an internal property of the class.
+
+Other unrelated classes cannot directly access it through the Controller instance.
+
+### `readonly`
+
+The dependency reference should not accidentally be reassigned.
+
+### `ProjectsService`
+
+It tells TypeScript and NestJS which dependency is expected.
+
+### Constructor Injection
+
+NestJS resolves and provides the dependency.
+
+---
+
+# 15. Understanding `private readonly` Together
+
+```typescript
+constructor(
+  private readonly projectsService: ProjectsService,
+) {}
+```
+
+This means:
+
+- Create a property named `projectsService`.
+- Its type is ProjectsService.
+- Allow access only inside this class.
+- Prevent reassignment of this property.
+- Receive the dependency through the constructor.
+
+---
+
+# 16. What is Constructor Parameter Property Shorthand?
+
+This code:
+
+```typescript
+constructor(
+  private readonly projectsService: ProjectsService,
+) {}
+```
+
+is a TypeScript feature called a parameter property.
+
+It automatically declares a class property and assigns the constructor parameter to that property.
+
+It is approximately equivalent to:
+
+```typescript
+export class ProjectsController {
+  private readonly projectsService: ProjectsService;
+
+  constructor(projectsService: ProjectsService) {
+    this.projectsService = projectsService;
+  }
+}
+```
+
+Instead of writing both the property declaration and assignment, TypeScript allows us to use the shorter syntax.
+
+---
+
+# 17. Different Combinations
+
+We can combine access modifiers with readonly.
+
+| Syntax | Meaning |
+|---|---|
+| `public projectsService` | Accessible everywhere |
+| `private projectsService` | Accessible only inside the class |
+| `protected projectsService` | Accessible inside the class and subclasses |
+| `public readonly projectsService` | Accessible everywhere, but cannot be reassigned |
+| `private readonly projectsService` | Accessible only inside the class, but cannot be reassigned |
+| `protected readonly projectsService` | Accessible inside the class and subclasses, but cannot be reassigned |
+
+---
+
+# 18. Complete NestJS Example
+
+### projects.service.ts
+
+```typescript
+import { Injectable } from '@nestjs/common';
+
+@Injectable()
+export class ProjectsService {
+  getProjects() {
+    return [
+      'Shree Cement',
+      'Electrolux',
+      'TSS',
+    ];
+  }
+}
+```
+
+### projects.module.ts
+
+```typescript
+import { Module } from '@nestjs/common';
+import { ProjectsController } from './projects.controller';
+import { ProjectsService } from './projects.service';
+
+@Module({
+  controllers: [ProjectsController],
+  providers: [ProjectsService],
+})
+export class ProjectsModule {}
+```
+
+### projects.controller.ts
+
+```typescript
+import { Controller, Get } from '@nestjs/common';
+import { ProjectsService } from './projects.service';
+
+@Controller('projects')
+export class ProjectsController {
+  constructor(
+    private readonly projectsService: ProjectsService,
+  ) {}
+
+  @Get()
+  getProjects() {
+    return this.projectsService.getProjects();
+  }
+}
+```
+
+### API Request
+
+```http
+GET /projects
+```
+
+### Response
+
+```json
+[
+  "Shree Cement",
+  "Electrolux",
+  "TSS"
+]
+```
+
+---
+
+# 19. Benefits of Dependency Injection
+
+- **Loose coupling:** Classes don't need to manage the creation of their dependencies.
+- **Reusability:** Providers can be reused by multiple components.
+- **Testability:** Dependencies can be replaced with mock implementations.
+- **Maintainability:** Dependency creation and configuration are managed centrally.
+- **Scalability:** Managing dependencies becomes easier as the application grows.
+
+---
+
+# 20. Interview Questions
+
+### Q1. What is Dependency Injection?
+
+Dependency Injection is a design pattern in which a class receives its dependencies from an external system rather than creating them itself.
+
+In NestJS, the DI container manages and provides dependencies.
+
+### Q2. Why do we use Dependency Injection in NestJS?
+
+We use DI to reduce coupling, improve reusability, simplify testing, and manage dependencies centrally.
+
+### Q3. What is `@Injectable()`?
+
+`@Injectable()` marks a class as available for NestJS's dependency injection system, allowing it to be registered and used as a provider.
+
+### Q4. What is the role of `providers` in a Module?
+
+The providers array registers classes and other provider definitions that NestJS can manage and resolve within the module's dependency injection context.
+
+### Q5. What is constructor injection?
+
+Constructor injection is a technique in which dependencies are provided to a class through its constructor.
+
+### Q6. What is the difference between `private` and `protected`?
+
+Private members are accessible only inside the declaring class.
+
+Protected members are accessible inside the declaring class and its subclasses.
+
+### Q7. What is the difference between `public` and `private`?
+
+Public members can be accessed from anywhere.
+
+Private members can only be accessed directly within the declaring class.
+
+### Q8. What does `readonly` do?
+
+Readonly prevents a property from being reassigned after initialization or constructor assignment.
+
+### Q9. Does `readonly` make an object immutable?
+
+No. It prevents reassignment of the property reference, not modification of the object's internal state.
+
+### Q10. Why do we use `private readonly` in NestJS?
+
+It restricts access to the injected property within the class and prevents reassignment of the dependency reference.
+
+### Q11. Does changing `private` to `public` affect Dependency Injection?
+
+No. Access modifiers control access to the property, not the DI mechanism.
+
+### Q12. Does NestJS create a new Service instance for every request?
+
+Not necessarily. By default, NestJS providers generally use singleton scope, meaning the same provider instance is shared within its module/application context. Request-scoped and transient providers behave differently.
+
+---
+
+# 21. Interview-Ready Explanation
+
+Dependency Injection is a design pattern used to reduce coupling between classes.
+
+In NestJS, when a Controller needs a Service, instead of creating that Service manually using the `new` keyword, we register the Service as a provider inside the Module and inject it through the Controller's constructor.
+
+NestJS's DI container resolves and provides the required instance.
+
+We commonly use `private readonly` in constructor injection. `private` restricts direct access to the property outside the class, while `readonly` prevents reassignment of the dependency reference.
+
+This makes our code more maintainable, reusable and testable.
+
+---
+
+# 22. Quick Revision
+
+| Concept | Meaning |
+|---|---|
+| Dependency | An object or class another class needs |
+| DI | Providing dependencies instead of manually creating them |
+| `@Injectable()` | Marks a class for NestJS's provider system |
+| `providers` | Registers providers within a module |
+| Constructor injection | Receives dependencies through the constructor |
+| `new Service()` | Manually creates a Service instance |
+| `private` | Restricts direct access to the class |
+| `protected` | Restricts access to the class and subclasses |
+| `public` | Allows access from anywhere |
+| `readonly` | Prevents property reassignment |
+| `private readonly` | Internal property that cannot be reassigned |
+| DI Container | NestJS system that resolves and provides dependencies |
+
+---
+
+## The Most Important Concept
+
+Without DI:
+
+```typescript
+private projectsService = new ProjectsService();
+```
+
+The Controller creates its own dependency.
+
+With DI:
+
+```typescript
+constructor(
+  private readonly projectsService: ProjectsService,
+) {}
+```
+
+The Controller requests the dependency, and NestJS provides it.
+
