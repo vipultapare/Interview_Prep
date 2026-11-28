@@ -2133,3 +2133,1274 @@ constructor(
 
 The Controller requests the dependency, and NestJS provides it.
 
+
+
+# NestJS Backend Fundamentals: DTOs, Pipes, Entities & TypeORM
+
+This README covers some of the fundamental concepts used while building backend applications using NestJS, TypeScript and PostgreSQL.
+
+## Table of Contents
+
+1. [Providers in NestJS](#1-providers-in-nestjs)
+2. [DTO (Data Transfer Object)](#2-dto-data-transfer-object)
+3. [Why DTO Alone Does Not Validate](#3-why-dto-alone-does-not-validate)
+4. [Pipes in NestJS](#4-pipes-in-nestjs)
+5. [ValidationPipe](#5-validationpipe)
+6. [Built-in Pipes](#6-built-in-pipes)
+7. [Entity in TypeORM](#7-entity-in-typeorm)
+8. [Components of an Entity](#8-components-of-an-entity)
+9. [What is TypeORM?](#9-what-is-typeorm)
+10. [Working Without TypeORM](#10-working-without-typeorm)
+11. [Working With TypeORM](#11-working-with-typeorm)
+12. [TypeORM Repository](#12-typeorm-repository)
+13. [CRUD Operations Without TypeORM](#13-crud-operations-without-typeorm)
+14. [CRUD Operations With TypeORM](#14-crud-operations-with-typeorm)
+15. [DTO vs Entity](#15-dto-vs-entity)
+16. [TypeORM Synchronization and Migrations](#16-typeorm-synchronization-and-migrations)
+17. [Complete Request Flow](#17-complete-request-flow)
+18. [Interview Questions](#18-interview-questions)
+19. [Quick Revision](#19-quick-revision)
+
+---
+
+# 1. Providers in NestJS
+
+## What is a Provider?
+
+A Provider is a class that NestJS can manage through its Dependency Injection system.
+
+Providers are commonly used to implement:
+
+- Business logic
+- Database operations
+- Services
+- Repositories
+- Helper functionality
+
+A Service is the most common type of Provider.
+
+### Example: ProjectsService
+
+```typescript
+import { Injectable } from '@nestjs/common';
+
+@Injectable()
+export class ProjectsService {
+  getProjects() {
+    return ['Project A', 'Project B', 'Project C'];
+  }
+}
+```
+
+### Understanding the code
+
+- `@Injectable()` marks the class as available to NestJS's dependency injection system.
+- `ProjectsService` contains the business logic.
+- `getProjects()` is a method that returns project data.
+
+## Registering the Provider
+
+Providers must be registered inside the module.
+
+```typescript
+import { Module } from '@nestjs/common';
+import { ProjectsService } from './projects.service';
+import { ProjectsController } from './projects.controller';
+
+@Module({
+  controllers: [ProjectsController],
+  providers: [ProjectsService],
+})
+export class ProjectsModule {}
+```
+
+### Why do we register a Service inside `providers`?
+
+By registering the service, we tell NestJS to manage its instantiation and dependency resolution within the module context.
+
+## Injecting the Provider into a Controller
+
+```typescript
+import { Controller, Get } from '@nestjs/common';
+import { ProjectsService } from './projects.service';
+
+@Controller('projects')
+export class ProjectsController {
+  constructor(private readonly projectsService: ProjectsService) {}
+
+  @Get()
+  getProjects() {
+    return this.projectsService.getProjects();
+  }
+}
+```
+
+Instead of manually creating the service:
+
+```typescript
+const projectsService = new ProjectsService();
+```
+
+NestJS injects the required instance through the constructor.
+
+### Benefits of Providers
+
+- Separation of concerns
+- Reusability
+- Dependency Injection
+- Easier testing
+- Better maintainability
+- Reduced coupling
+
+---
+
+# 2. DTO (Data Transfer Object)
+
+## What is a DTO?
+
+DTO stands for Data Transfer Object.
+
+A DTO defines the expected structure of data that is transferred between parts of an application, commonly between the frontend and backend.
+
+DTOs are commonly used to define the structure of:
+
+- Request bodies
+- API input data
+- Data passed between application layers
+- API response models (when designed for that purpose)
+
+### Example: CreateUserDto
+
+```typescript
+export class CreateUserDto {
+  id: number;
+  name: string;
+}
+```
+
+This DTO defines:
+
+- `id` should be a number.
+- `name` should be a string.
+
+However, TypeScript types alone do not validate incoming HTTP data at runtime.
+
+---
+
+# 3. Why DTO Alone Does Not Validate
+
+Consider the following DTO:
+
+```typescript
+export class CreateUserDto {
+  id: number;
+  name: string;
+}
+```
+
+Suppose the frontend sends the following requests.
+
+### Request 1
+
+```json
+{
+  "id": 1,
+  "name": "Samir"
+}
+```
+
+### Request 2
+
+```json
+{
+  "id": 1,
+  "name": 344
+}
+```
+
+### Request 3
+
+```json
+{
+  "id": 1,
+  "name": "West Timer"
+}
+```
+
+Without runtime validation, all three requests can reach the controller.
+
+| Request | Result without runtime validation |
+|---|---|
+| `1, "Samir"` | Can pass |
+| `1, 344` | Can pass |
+| `1, "West Timer"` | Can pass |
+
+### Why?
+
+TypeScript types are removed during compilation.
+
+For example:
+
+```typescript
+name: string;
+```
+
+is a TypeScript declaration. It does not automatically enforce that incoming JSON must contain a string at runtime.
+
+To perform runtime validation, we need validation decorators and a Pipe.
+
+---
+
+# 4. Pipes in NestJS
+
+## What is a Pipe?
+
+A Pipe is a mechanism that processes incoming data before it reaches the controller handler.
+
+Pipes are commonly used for:
+
+1. Validation
+2. Transformation
+
+### Validation
+
+Validation checks whether the incoming data satisfies the required rules.
+
+Example:
+
+- Is the name a string?
+- Is the email valid?
+- Is the ID an integer?
+- Is the password long enough?
+
+### Transformation
+
+Transformation converts incoming data into a different format or type.
+
+Example:
+
+- Convert a string `"10"` into the number `10`.
+- Convert incoming data into a specific object structure.
+
+### Request flow
+
+```text
+Frontend Request
+      |
+      v
+     Pipe
+      |
+      |-- Validation
+      |
+      |-- Transformation
+      |
+      v
+  Controller
+      |
+      v
+   Service
+```
+
+---
+
+# 5. ValidationPipe
+
+ValidationPipe is a built-in NestJS Pipe that performs runtime validation using validation decorators.
+
+To use it, we commonly use:
+
+- `class-validator`
+- `class-transformer`
+
+## Installation
+
+```bash
+npm install class-validator class-transformer
+```
+
+## Step 1: Create a DTO with validation decorators
+
+### create-user.dto.ts
+
+```typescript
+import { IsInt, IsString } from 'class-validator';
+
+export class CreateUserDto {
+  @IsInt()
+  id: number;
+
+  @IsString()
+  name: string;
+}
+```
+
+### Understanding the decorators
+
+| Decorator | Purpose |
+|---|---|
+| `@IsInt()` | Ensures the value is an integer |
+| `@IsString()` | Ensures the value is a string |
+
+Now we have defined runtime validation rules.
+
+## Step 2: Enable ValidationPipe globally
+
+### main.ts
+
+```typescript
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+import { ValidationPipe } from '@nestjs/common';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+
+  app.useGlobalPipes(
+    new ValidationPipe(),
+  );
+
+  await app.listen(3000);
+}
+
+bootstrap();
+```
+
+Now NestJS will validate incoming data against the applicable DTO validation decorators.
+
+## Step 3: Understanding validation
+
+### Valid request
+
+```json
+{
+  "id": 1,
+  "name": "Samir"
+}
+```
+
+The request passes validation.
+
+### Invalid request
+
+```json
+{
+  "id": 1,
+  "name": 344
+}
+```
+
+The request fails because `name` is expected to be a string.
+
+NestJS returns a `400 Bad Request` response by default when validation fails.
+
+The controller handler will not execute for that request.
+
+---
+
+# 6. Built-in Pipes
+
+NestJS provides several built-in Pipes.
+
+| Pipe | Purpose |
+|---|---|
+| `ValidationPipe` | Validates incoming data against DTO validation rules |
+| `ParseIntPipe` | Converts and validates integer input |
+| `ParseBoolPipe` | Converts and validates boolean input |
+| `ParseUUIDPipe` | Validates UUID values |
+| `ParseArrayPipe` | Parses and validates arrays |
+| `DefaultValuePipe` | Provides a default value when input is absent |
+
+## Example: ParseIntPipe
+
+```typescript
+import {
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+} from '@nestjs/common';
+
+@Controller('projects')
+export class ProjectsController {
+
+  @Get(':id')
+  getProject(@Param('id', ParseIntPipe) id: number) {
+    return id;
+  }
+}
+```
+
+### Request
+
+```text
+GET /projects/10
+```
+
+The URL parameter initially arrives as a string.
+
+ParseIntPipe converts the parameter into an integer.
+
+### Results
+
+| Input | Result |
+|---|---|
+| `/projects/10` | Accepted |
+| `/projects/25` | Accepted |
+| `/projects/abc` | Rejected |
+
+---
+
+# 7. Entity in TypeORM
+
+## What is an Entity?
+
+An Entity is a class that represents and maps to a database table when using TypeORM.
+
+For example, consider a PostgreSQL table called `users`.
+
+| id | name | email |
+|---|---|---|
+| 1 | Samir | samir@gmail.com |
+| 2 | Vipul | vipul@gmail.com |
+| 3 | Rahul | rahul@gmail.com |
+
+Instead of manually mapping database rows into application objects, TypeORM allows us to define an Entity.
+
+### user.entity.ts
+
+```typescript
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+} from 'typeorm';
+
+@Entity('users')
+export class User {
+
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column()
+  name: string;
+
+  @Column()
+  email: string;
+}
+```
+
+This class represents the `users` table.
+
+---
+
+# 8. Components of an Entity
+
+## 8.1 @Entity()
+
+```typescript
+@Entity('users')
+```
+
+This decorator tells TypeORM that the class represents the `users` database table.
+
+---
+
+## 8.2 @PrimaryGeneratedColumn()
+
+```typescript
+@PrimaryGeneratedColumn()
+id: number;
+```
+
+Defines a primary key with a generated value.
+
+For example:
+
+| id | name |
+|---|---|
+| 1 | Samir |
+| 2 | Vipul |
+| 3 | Rahul |
+
+The database typically generates the ID when a record is inserted.
+
+---
+
+## 8.3 @Column()
+
+```typescript
+@Column()
+name: string;
+```
+
+Maps a property to a database column.
+
+### Column configuration
+
+```typescript
+@Column({ unique: true })
+email: string;
+```
+
+The column is configured with a uniqueness constraint.
+
+```typescript
+@Column({ default: true })
+isActive: boolean;
+```
+
+The column has a default value.
+
+```typescript
+@Column({ length: 100 })
+name: string;
+```
+
+Configures the column length.
+
+---
+
+## 8.4 @CreateDateColumn()
+
+```typescript
+@CreateDateColumn()
+createdAt: Date;
+```
+
+TypeORM automatically manages the creation timestamp when the entity is inserted.
+
+---
+
+## 8.5 @UpdateDateColumn()
+
+```typescript
+@UpdateDateColumn()
+updatedAt: Date;
+```
+
+TypeORM automatically manages the update timestamp for applicable entity update operations.
+
+---
+
+## Complete Entity Example
+
+```typescript
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
+
+@Entity('users')
+export class User {
+
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column({ length: 100 })
+  name: string;
+
+  @Column({ unique: true })
+  email: string;
+
+  @Column({ default: true })
+  isActive: boolean;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
+}
+```
+
+---
+
+# 9. What is TypeORM?
+
+TypeORM stands for Object Relational Mapper.
+
+ORM means Object Relational Mapping.
+
+It allows us to interact with relational databases using TypeScript/JavaScript classes, objects and methods.
+
+Instead of manually writing SQL for every common CRUD operation, TypeORM provides methods such as:
+
+- `save()`
+- `find()`
+- `findOneBy()`
+- `update()`
+- `delete()`
+- `remove()`
+
+TypeORM maps Entities to database tables.
+
+### Example
+
+Instead of manually writing:
+
+```sql
+SELECT * FROM users;
+```
+
+We can use:
+
+```typescript
+userRepository.find();
+```
+
+TypeORM translates the operation into SQL and executes it through the database driver.
+
+TypeORM does not eliminate SQL. SQL is still executed by the database.
+
+---
+
+# 10. Working Without TypeORM
+
+We can interact with PostgreSQL directly using a driver such as `pg`.
+
+## Step 1: Install the driver
+
+```bash
+npm install pg
+npm install -D @types/pg
+```
+
+## Step 2: Create a DatabaseService
+
+### database.service.ts
+
+```typescript
+import { Injectable } from '@nestjs/common';
+import { Pool } from 'pg';
+
+@Injectable()
+export class DatabaseService {
+
+  private readonly pool: Pool;
+
+  constructor() {
+    this.pool = new Pool({
+      host: 'localhost',
+      port: 5432,
+      user: 'postgres',
+      password: 'your_password',
+      database: 'my_database',
+    });
+  }
+
+  query(sql: string, params?: any[]) {
+    return this.pool.query(sql, params);
+  }
+}
+```
+
+### Understanding the code
+
+- `Pool` manages PostgreSQL connections.
+- `query()` executes SQL statements.
+- `params` contains parameterized query values.
+
+---
+
+# 11. Creating a Table Without TypeORM
+
+We manually execute SQL.
+
+```sql
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL
+);
+```
+
+### Explanation
+
+| SQL | Purpose |
+|---|---|
+| `CREATE TABLE users` | Creates the table |
+| `id SERIAL` | Generates an integer ID |
+| `PRIMARY KEY` | Identifies the primary key |
+| `name VARCHAR(100)` | Defines the name column |
+| `NOT NULL` | Requires a value |
+| `email VARCHAR(255)` | Defines the email column |
+| `UNIQUE` | Prevents duplicate email values |
+
+Without an ORM, we manually manage the schema using SQL scripts or migrations.
+
+---
+
+# 12. TypeORM Repository
+
+## What is a Repository?
+
+A Repository is an object provided by TypeORM that allows us to perform database operations for a particular Entity.
+
+For example:
+
+```typescript
+Repository<User>
+```
+
+This Repository manages database operations for the User Entity.
+
+It provides methods such as:
+
+| Method | Purpose |
+|---|---|
+| `create()` | Creates an Entity instance from data |
+| `save()` | Saves an Entity to the database |
+| `find()` | Retrieves multiple records |
+| `findOneBy()` | Retrieves one record based on conditions |
+| `update()` | Updates matching records |
+| `delete()` | Deletes matching records |
+| `remove()` | Removes an existing Entity instance |
+
+---
+
+# 13. CRUD Operations Without TypeORM
+
+## INSERT
+
+```typescript
+async createUser(name: string, email: string) {
+  const result = await this.databaseService.query(
+    `INSERT INTO users (name, email)
+     VALUES ($1, $2)
+     RETURNING *`,
+    [name, email],
+  );
+
+  return result.rows[0];
+}
+```
+
+SQL:
+
+```sql
+INSERT INTO users (name, email)
+VALUES ($1, $2)
+RETURNING *;
+```
+
+---
+
+## SELECT All
+
+```typescript
+async getUsers() {
+  const result = await this.databaseService.query(
+    `SELECT * FROM users`,
+  );
+
+  return result.rows;
+}
+```
+
+SQL:
+
+```sql
+SELECT * FROM users;
+```
+
+---
+
+## SELECT By ID
+
+```typescript
+async getUserById(id: number) {
+  const result = await this.databaseService.query(
+    `SELECT * FROM users WHERE id = $1`,
+    [id],
+  );
+
+  return result.rows[0];
+}
+```
+
+SQL:
+
+```sql
+SELECT * FROM users WHERE id = $1;
+```
+
+---
+
+## UPDATE
+
+```typescript
+async updateUser(id: number, name: string) {
+  const result = await this.databaseService.query(
+    `UPDATE users
+     SET name = $1
+     WHERE id = $2
+     RETURNING *`,
+    [name, id],
+  );
+
+  return result.rows[0];
+}
+```
+
+SQL:
+
+```sql
+UPDATE users
+SET name = $1
+WHERE id = $2
+RETURNING *;
+```
+
+---
+
+## DELETE
+
+```typescript
+async deleteUser(id: number) {
+  const result = await this.databaseService.query(
+    `DELETE FROM users
+     WHERE id = $1
+     RETURNING *`,
+    [id],
+  );
+
+  return result.rows[0];
+}
+```
+
+SQL:
+
+```sql
+DELETE FROM users
+WHERE id = $1
+RETURNING *;
+```
+
+---
+
+# 14. CRUD Operations With TypeORM
+
+## Step 1: Install TypeORM
+
+```bash
+npm install @nestjs/typeorm typeorm pg
+```
+
+## Step 2: Create an Entity
+
+### user.entity.ts
+
+```typescript
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+} from 'typeorm';
+
+@Entity('users')
+export class User {
+
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column()
+  name: string;
+
+  @Column({ unique: true })
+  email: string;
+}
+```
+
+## Step 3: Configure TypeORM
+
+### app.module.ts
+
+```typescript
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { User } from './users/user.entity';
+
+@Module({
+  imports: [
+    TypeOrmModule.forRoot({
+      type: 'postgres',
+      host: 'localhost',
+      port: 5432,
+      username: 'postgres',
+      password: 'your_password',
+      database: 'my_database',
+      entities: [User],
+      synchronize: false,
+    }),
+  ],
+})
+export class AppModule {}
+```
+
+### Configuration
+
+| Property | Purpose |
+|---|---|
+| `type` | Database type |
+| `host` | Database host |
+| `port` | Database port |
+| `username` | Database username |
+| `password` | Database password |
+| `database` | Database name |
+| `entities` | Registers Entities |
+| `synchronize` | Controls automatic schema synchronization |
+
+---
+
+## Step 4: Register Repository in UsersModule
+
+### users.module.ts
+
+```typescript
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { UsersService } from './users.service';
+import { UsersController } from './users.controller';
+import { User } from './user.entity';
+
+@Module({
+  imports: [
+    TypeOrmModule.forFeature([User]),
+  ],
+  controllers: [UsersController],
+  providers: [UsersService],
+})
+export class UsersModule {}
+```
+
+`TypeOrmModule.forFeature([User])` registers the User Repository for injection in this module.
+
+---
+
+## Step 5: Inject Repository into the Service
+
+### users.service.ts
+
+```typescript
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { User } from './user.entity';
+
+@Injectable()
+export class UsersService {
+
+  constructor(
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+  ) {}
+}
+```
+
+### Explanation
+
+- `Repository<User>` represents the repository for the User Entity.
+- `@InjectRepository(User)` tells NestJS to inject the User Repository.
+- `userRepository` is used to interact with the database.
+
+---
+
+# 15. DTO vs Entity
+
+| DTO | Entity |
+|---|---|
+| Defines the data structure expected by the API | Represents the database table |
+| Commonly used for incoming request data | Used for database mapping |
+| Contains validation decorators | Contains ORM mapping decorators |
+| Example: `CreateUserDto` | Example: `User` |
+| Defines the API input contract | Defines the database model |
+
+## DTO Example
+
+```typescript
+import { IsEmail, IsString } from 'class-validator';
+
+export class CreateUserDto {
+
+  @IsString()
+  name: string;
+
+  @IsEmail()
+  email: string;
+}
+```
+
+The DTO defines the input contract.
+
+## Entity Example
+
+```typescript
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+} from 'typeorm';
+
+@Entity('users')
+export class User {
+
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column()
+  name: string;
+
+  @Column()
+  email: string;
+}
+```
+
+The Entity defines the database mapping.
+
+### Why do we need both?
+
+The DTO and Entity serve different purposes.
+
+The DTO defines what data the API accepts.
+
+The Entity defines how data is represented and mapped to the database.
+
+For example, when creating a user, the frontend may not need to provide an ID.
+
+The Entity contains the ID because the database table needs a primary key.
+
+---
+
+# 16. TypeORM Synchronization and Migrations
+
+## synchronize: true
+
+```typescript
+TypeOrmModule.forRoot({
+  type: 'postgres',
+  // other configuration
+  synchronize: true,
+});
+```
+
+TypeORM can synchronize Entity definitions with the database schema during application startup.
+
+This can be useful in development, but it is generally not recommended for production.
+
+Schema changes can be risky when synchronization is enabled.
+
+## Migrations
+
+Migrations are controlled scripts that describe database schema changes.
+
+For example:
+
+```sql
+CREATE TABLE users (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  email VARCHAR(255) UNIQUE NOT NULL
+);
+```
+
+A migration allows us to apply schema changes in a controlled and versioned manner.
+
+### Why migrations?
+
+- Controlled database changes
+- Version history
+- Safer production deployments
+- Consistent environments
+- Rollback support, when implemented
+
+---
+
+# 17. Complete Request Flow
+
+```text
+Frontend
+   |
+   | HTTP Request
+   v
+ValidationPipe
+   |
+   | Validates request data
+   v
+DTO
+   |
+   | Defines expected data
+   v
+Controller
+   |
+   | Handles the request
+   v
+Provider / Service
+   |
+   | Business logic
+   v
+Repository
+   |
+   | TypeORM database operations
+   v
+Entity
+   |
+   | Maps data to the database table
+   v
+PostgreSQL
+```
+
+### Responsibilities
+
+| Component | Responsibility |
+|---|---|
+| Frontend | Sends request |
+| Pipe | Validates and transforms incoming data |
+| DTO | Defines expected data structure |
+| Controller | Handles HTTP requests |
+| Provider/Service | Executes business logic |
+| Repository | Performs database operations |
+| Entity | Maps application objects to database tables |
+| PostgreSQL | Stores and retrieves data |
+
+---
+
+# 18. Interview Questions
+
+## Q1. What is a DTO in NestJS?
+
+A DTO, or Data Transfer Object, defines the structure of data transferred between parts of an application, commonly used to define the expected request body structure.
+
+We commonly use DTOs with validation decorators from class-validator.
+
+---
+
+## Q2. Does a DTO validate data automatically?
+
+No.
+
+TypeScript type declarations alone do not perform runtime validation.
+
+To validate incoming request data, we need validation decorators and a runtime validation mechanism such as NestJS ValidationPipe.
+
+---
+
+## Q3. What is a Pipe in NestJS?
+
+A Pipe is a mechanism that processes incoming data before it reaches a controller handler.
+
+Pipes are commonly used for validation and transformation.
+
+---
+
+## Q4. What is ValidationPipe?
+
+ValidationPipe is a built-in NestJS Pipe that validates incoming data against validation rules defined using decorators.
+
+It commonly works with class-validator and class-transformer.
+
+---
+
+## Q5. What is an Entity?
+
+An Entity is a class that maps to a database table when using an ORM such as TypeORM.
+
+It defines the database mapping for properties, columns and relationships.
+
+---
+
+## Q6. What is TypeORM?
+
+TypeORM is an Object Relational Mapper that allows us to interact with relational databases using TypeScript classes, objects and Repository methods.
+
+It reduces the need to manually write SQL for common database operations.
+
+---
+
+## Q7. What is a Repository in TypeORM?
+
+A Repository is an object that provides methods to perform database operations for a specific Entity.
+
+Examples include `find()`, `save()`, `update()` and `delete()`.
+
+---
+
+## Q8. What is the difference between TypeORM and raw SQL?
+
+With raw SQL, we manually write SQL statements and execute them through a database driver.
+
+With TypeORM, we use Entities and Repository methods for common operations, and TypeORM handles the query execution through the database driver.
+
+---
+
+## Q9. Does TypeORM eliminate SQL?
+
+No.
+
+TypeORM abstracts many common operations, but SQL is still executed by the database.
+
+SQL knowledge is still important for complex queries, optimization and database-specific operations.
+
+---
+
+## Q10. Does creating an Entity automatically create a database table?
+
+Not by itself.
+
+Schema creation depends on the TypeORM configuration and schema-management approach.
+
+`synchronize: true` can synchronize schema automatically, while migrations provide a controlled approach.
+
+---
+
+## Q11. What is the difference between save() and create()?
+
+`create()` creates an Entity instance using the supplied data. It does not persist the record by itself.
+
+`save()` persists an Entity to the database. It can insert a new record or update an existing record depending on the entity and primary key.
+
+---
+
+## Q12. Why should synchronize not be enabled in production?
+
+Automatic schema synchronization can cause unexpected database schema changes and potentially data loss.
+
+Production database changes should generally be managed through migrations.
+
+---
+
+# 19. Quick Revision
+
+| Concept | Remember |
+|---|---|
+| Provider | A class managed by NestJS DI, commonly used for business logic |
+| DTO | Defines expected data structure |
+| Validation Decorators | Define runtime validation rules |
+| Pipe | Validates or transforms incoming data |
+| ValidationPipe | Executes DTO validation rules |
+| Entity | Maps a class to a database table |
+| `@Entity()` | Defines the Entity/table mapping |
+| `@Column()` | Maps a property to a database column |
+| `@PrimaryGeneratedColumn()` | Defines a generated primary key |
+| TypeORM | ORM that abstracts common database operations |
+| Repository | Performs database operations for an Entity |
+| `create()` | Creates an Entity instance |
+| `save()` | Persists an Entity |
+| `find()` | Retrieves records |
+| `update()` | Updates records |
+| `delete()` | Deletes records |
+| Raw SQL | Directly writes SQL queries |
+| Migration | Versioned and controlled schema change |
+| `synchronize` | Automatically synchronizes schema when enabled |
+
+---
+
+## Interview-ready summary
+
+In NestJS, DTOs define the structure of incoming data, and we use validation decorators to define runtime validation rules. Pipes such as ValidationPipe execute those rules before the request reaches the controller handler. Providers, commonly Services, contain the business logic and are managed through NestJS Dependency Injection. When using TypeORM, we define Entities to map application classes to database tables. TypeORM provides Repository methods such as save, find, update and delete to perform common database operations without manually writing SQL for every operation. However, SQL is still executed internally, and understanding SQL remains important. Without TypeORM, we can use a database driver such as pg and write SQL queries directly. For production schema management, migrations are generally preferred over automatic synchronization.
+
+---
+
+
